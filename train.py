@@ -1,6 +1,8 @@
 import hydra
 from omegaconf import OmegaConf
 from torch_points3d.trainer import Trainer
+import argparse
+import sys
 
 
 @hydra.main(config_path="conf/config.yaml")
