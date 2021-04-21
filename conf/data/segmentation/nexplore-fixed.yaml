@@ -2,7 +2,7 @@ data:
   task: segmentation
   class: nexplore.NexploreS3DISFusedDataset
   dataroot: C:\Users\mpautzke\Data\points3d
-  fold: 5
+  fold: 7
   first_subsampling: 0.04
   use_category: False
   pre_collate_transform:
@@ -13,7 +13,7 @@ data:
             size: ${data.first_subsampling}
   train_transforms:
     - transform: FixedPoints
-      lparams: [10000]
+      lparams: [20000]
     - transform: RandomNoise
       params:
         sigma: 0.001
@@ -47,7 +47,7 @@ data:
         scale: 0.5
   test_transform:
     - transform: FixedPoints
-      lparams: [10000]
+      lparams: [20000]
     - transform: XYZFeature
       params:
         add_x: False
