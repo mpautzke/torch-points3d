@@ -28,7 +28,7 @@ from torch_points3d.datasets.base_dataset import BaseDataset
 DIR = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger(__name__)
 
-S3DIS_NUM_CLASSES = 2
+S3DIS_NUM_CLASSES = 3
 
 INV_OBJECT_LABEL = {
     0: "road",
@@ -230,15 +230,15 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
     # path_file = osp.join(DIR, "s3dis.patch")
     # file_name = "Stanford3dDataset_v1.2"
     # folders = ["Area_{}".format(i) for i in range(1, 7)]
-    folders = ["a40", "floral_ave", "houston", "orange_ave_connector",
-               "orange_oregon", "peach", "taktkeller", "tule"]
+    folders = ["a40", "houston", "orange_ave_connector",
+               "orange_oregon", "peach", "taktkeller", "tule", "floral_ave"]
 
     num_classes = S3DIS_NUM_CLASSES
 
     def __init__(
         self,
         root,
-        test_area=8, #TODO need to find where this is passed in
+        test_area=8,
         split="train",
         transform=None,
         pre_transform=None,
@@ -248,7 +248,6 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         verbose=False,
         debug=False,
     ):
-        test_area = 7 #TODO see above?
         assert test_area >= 1 and test_area <= len(self.folders)
         self.transform = transform
         self.pre_collate_transform = pre_collate_transform
@@ -316,8 +315,8 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
     def download(self):
         raw_folders = os.listdir(self.raw_dir)
         if len(raw_folders) == 0:
-            if not os.path.exists(osp.join(self.root, self.zip_name)):
-                log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
+            # if not os.path.exists(osp.join(self.root, self.zip_name)):
+            log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
             #     log.info("Please, register yourself by filling up the form at {}".format(self.form_url))
             #     log.info("***")
             #     log.info(
@@ -620,8 +619,9 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.train_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=3000,
+            sample_per_epoch=500,
             test_area=self.dataset_opt.fold,
+            radius=5,
             split="train",
             pre_collate_transform=self.pre_collate_transform,
             transform=self.train_transform,
@@ -631,13 +631,16 @@ class NexploreS3DISFusedDataset(BaseDataset):
             self._data_path,
             sample_per_epoch=-1,
             test_area=self.dataset_opt.fold,
+            radius=5,
             split="val",
             pre_collate_transform=self.pre_collate_transform,
             transform=self.val_transform,
         )
+
         self.test_dataset = dataset_cls(
             self._data_path,
             sample_per_epoch=-1,
+            radius=5,
             test_area=self.dataset_opt.fold,
             split="test",
             pre_collate_transform=self.pre_collate_transform,
