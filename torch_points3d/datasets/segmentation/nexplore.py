@@ -31,9 +31,9 @@ log = logging.getLogger(__name__)
 S3DIS_NUM_CLASSES = 3
 
 INV_OBJECT_LABEL = {
-    0: "road",
+    0: "other",
     1: "power_pole",
-    2: "other"
+    2: "road"
 }
 
 OBJECT_COLOR = np.asarray(
@@ -73,7 +73,8 @@ VALIDATION_ROOMS = [
 
 def object_name_to_label(object_class):
     """convert from object name in S3DIS to an int"""
-    object_label = OBJECT_LABEL.get(object_class, OBJECT_LABEL["other"])
+
+    object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
     return object_label
 
 
@@ -132,8 +133,8 @@ def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debu
         return (
             torch.from_numpy(xyz),
             torch.from_numpy(rgb),
-            torch.from_numpy(semantic_labels),
-            torch.from_numpy(instance_labels),
+            torch.from_numpy(semantic_labels), #actual label
+            torch.from_numpy(instance_labels), #index of instance
             torch.from_numpy(room_label),
         )
 
@@ -230,8 +231,10 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
     # path_file = osp.join(DIR, "s3dis.patch")
     # file_name = "Stanford3dDataset_v1.2"
     # folders = ["Area_{}".format(i) for i in range(1, 7)]
-    folders = ["a40", "houston", "orange_ave_connector",
-               "orange_oregon", "peach", "taktkeller", "tule", "floral_ave"]
+    # folders = ["a40", "houston", "orange_ave_connector",
+    #            "orange_oregon", "peach", "taktkeller", "tule", "floral_ave"]
+
+    folders = ["orange_ave_connector", "houston", "floral_ave", "tule"]
 
     num_classes = S3DIS_NUM_CLASSES
 
@@ -619,9 +622,8 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.train_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=500,
+            sample_per_epoch=3000,
             test_area=self.dataset_opt.fold,
-            radius=5,
             split="train",
             pre_collate_transform=self.pre_collate_transform,
             transform=self.train_transform,
@@ -631,7 +633,6 @@ class NexploreS3DISFusedDataset(BaseDataset):
             self._data_path,
             sample_per_epoch=-1,
             test_area=self.dataset_opt.fold,
-            radius=5,
             split="val",
             pre_collate_transform=self.pre_collate_transform,
             transform=self.val_transform,
@@ -640,7 +641,6 @@ class NexploreS3DISFusedDataset(BaseDataset):
         self.test_dataset = dataset_cls(
             self._data_path,
             sample_per_epoch=-1,
-            radius=5,
             test_area=self.dataset_opt.fold,
             split="test",
             pre_collate_transform=self.pre_collate_transform,
