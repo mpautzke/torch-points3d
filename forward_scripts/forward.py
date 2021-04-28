@@ -71,6 +71,7 @@ def main(cfg):
     train_dataset_cls = get_dataset_class(checkpoint.data_config)
     setattr(checkpoint.data_config, "class", train_dataset_cls.FORWARD_CLASS)
     setattr(checkpoint.data_config, "dataroot", cfg.input_path)
+    setattr(checkpoint.data_config, "dataset_name", "segment_1.txt")
 
     # Datset specific configs
     if cfg.data:
