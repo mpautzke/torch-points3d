@@ -47,6 +47,7 @@ def run(model: BaseModel, dataset, device, output_path):
                 with torch.no_grad():
                     model.set_input(data, device)
                     model.forward()
+                    print(model.get_output())
                 predicted = {**predicted, **dataset.predict_original_samples(data, model.conv_type, model.get_output())}
 
     save(output_path, predicted)
@@ -94,11 +95,11 @@ def main(cfg):
 
     # Set dataloaders
     # TODO implement if you want to run through a list of PC
-    # dataset = instantiate_dataset(checkpoint.data_config)
-    # dataset.create_dataloaders(
-    #     model, cfg.batch_size, cfg.shuffle, cfg.num_workers, False,
-    # )
-    # log.info(dataset)
+    dataset = instantiate_dataset(checkpoint.data_config)
+    dataset.create_dataloaders(
+        model, cfg.batch_size, cfg.shuffle, cfg.num_workers, False,
+    )
+    log.info(dataset)
 
 
 

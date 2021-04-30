@@ -614,7 +614,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
     INV_OBJECT_LABEL = INV_OBJECT_LABEL
 
-    FORWARD_CLASS = "forward.nexplore.ForwardNexploreDataset"
+    FORWARD_CLASS = "forward.nexplore.NexploreS3DISFusedForwardDataset"
 
     def __init__(self, dataset_opt):
         super().__init__(dataset_opt)
@@ -624,7 +624,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.train_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=5000,
+            sample_per_epoch=500,
             test_area=self.dataset_opt.fold,
             split="train",
             pre_collate_transform=self.pre_collate_transform,
@@ -633,7 +633,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.val_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=5000,
+            sample_per_epoch=500,
             test_area=self.dataset_opt.fold,
             split="val",
             pre_collate_transform=self.pre_collate_transform,
@@ -642,7 +642,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.test_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=5000,
+            sample_per_epoch=500,
             test_area=self.dataset_opt.fold,
             split="test",
             pre_collate_transform=self.pre_collate_transform,
