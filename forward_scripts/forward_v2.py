@@ -6,6 +6,10 @@ import os
 import sys
 import numpy as np
 from typing import Dict
+from torch_geometric.data import Batch, Data
+
+from numpy import genfromtxt
+
 
 
 DIR = os.path.dirname(os.path.realpath(__file__))
@@ -66,6 +70,22 @@ def main(cfg):
     # Checkpoint
     checkpoint = ModelCheckpoint(cfg.checkpoint_dir, cfg.model_name, cfg.weight_name, strict=True)
 
+    path = os.path.join(cfg.input_path, 'segment_1.txt')
+
+    my_data = genfromtxt(path, delimiter=' ', dtype=float)
+
+    pos = my_data[:, 0:3]
+    T = my_data[:, 3:]
+
+    pos_torch = torch.from_numpy(pos)
+    T_torch = torch.from_numpy(T)
+
+    pos_torch = torch.unsqueeze(pos_torch, 0)
+    T_torch = torch.unsqueeze(T_torch, 0)
+
+    data = Data(pos=pos_torch, x=T_torch)
+    data = Batch.from_data_list([data, data])
+
     # Setup the dataset config
     # Generic config
 
@@ -108,8 +128,12 @@ def main(cfg):
     if not os.path.exists(cfg.output_path):
         os.makedirs(cfg.output_path)
 
-    run(model, dataset, device, cfg.output_path)
+    model.set_input(data, device)
 
+    res = model(data)
+    print(res)
+
+    run(model, dataset, device, cfg.output_path)
 
 if __name__ == "__main__":
     main()
