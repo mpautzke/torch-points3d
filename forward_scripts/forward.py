@@ -87,11 +87,14 @@ def main(cfg):
     log.info("Model size = %i", sum(param.numel() for param in model.parameters() if param.requires_grad))
 
     # Set dataloaders
-    dataset = instantiate_dataset(checkpoint.data_config)
-    dataset.create_dataloaders(
-        model, cfg.batch_size, cfg.shuffle, cfg.num_workers, False,
-    )
-    log.info(dataset)
+    # TODO implement if you want to run through a list of PC
+    # dataset = instantiate_dataset(checkpoint.data_config)
+    # dataset.create_dataloaders(
+    #     model, cfg.batch_size, cfg.shuffle, cfg.num_workers, False,
+    # )
+    # log.info(dataset)
+
+
 
     model.eval()
     if cfg.enable_dropout:

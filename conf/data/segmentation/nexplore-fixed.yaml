@@ -1,7 +1,7 @@
 data:
   task: segmentation
   class: nexplore.NexploreS3DISFusedDataset
-  dataroot: C:\Users\juanantonio\data
+  dataroot: C:\Users\mpautzke\Data\points3d
   fold: 3
   first_subsampling: 0.08
   use_category: False
