@@ -32,9 +32,12 @@ log = logging.getLogger(__name__)
 
 def save(prefix, predicted):
     for key, value in predicted.items():
-        filename = os.path.splitext(key)[0]
+        # filename = os.path.splitext(key)[0]
+        filename = "one"
         out_file = filename + "_pred"
-        np.save(os.path.join(prefix, out_file), value)
+        path = os.path.join(prefix, out_file)
+        np.save(path, value)
+        np.savetxt(path, value)
 
 
 def run(model: BaseModel, dataset, device, output_path):
@@ -42,13 +45,12 @@ def run(model: BaseModel, dataset, device, output_path):
     predicted: Dict = {}
     for loader in loaders:
         loader.dataset.name
-        with Ctq(loader) as tq_test_loader:
-            for data in tq_test_loader:
-                with torch.no_grad():
-                    model.set_input(data, device)
-                    model.forward()
-                    print(model.get_output())
-                predicted = {**predicted, **dataset.predict_original_samples(data, model.conv_type, model.get_output())}
+        # with loader as tq_test_loader:
+        for data in loader:
+            with torch.no_grad():
+                model.set_input(data, device)
+                model.forward()
+            predicted = {**predicted, **dataset.predict_original_samples(data, model.conv_type, model.get_output())}
 
     save(output_path, predicted)
 
@@ -100,8 +102,6 @@ def main(cfg):
         model, cfg.batch_size, cfg.shuffle, cfg.num_workers, False,
     )
     log.info(dataset)
-
-
 
     model.eval()
     if cfg.enable_dropout:
