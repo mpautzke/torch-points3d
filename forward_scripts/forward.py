@@ -45,7 +45,7 @@ def run(model: BaseModel, dataset, device, output_path):
     predicted: Dict = {}
     for loader in loaders:
         loader.dataset.name
-        # with loader as tq_test_loader:
+        # with Ctq(loader) as tq_test_loader:
         for data in loader:
             with torch.no_grad():
                 model.set_input(data, device)
@@ -109,6 +109,7 @@ def main(cfg):
     model = model.to(device)
 
     # Run training / evaluation
+
     if not os.path.exists(cfg.output_path):
         os.makedirs(cfg.output_path)
 
