@@ -30,29 +30,31 @@ from torch_points3d.utils.colors import COLORS
 log = logging.getLogger(__name__)
 
 
-def save(prefix, predicted):
-    for key, value in predicted.items():
-        # filename = os.path.splitext(key)[0]
-        filename = "one"
-        out_file = filename + "_pred"
-        path = os.path.join(prefix, out_file)
-        np.save(path, value)
-        np.savetxt(path, value)
+def save(prefix, results):
+    # filename = os.path.splitext(key)[0]
+    filename = "one"
+    out_file = filename + "_pred"
+    path = os.path.join(prefix, out_file)
+    np.save(path, results)
+    np.savetxt(path, results)
 
 
 def run(model: BaseModel, dataset, device, output_path):
     loaders = dataset.test_dataloaders
-    predicted: Dict = {}
+    results = None
     for loader in loaders:
         loader.dataset.name
-        # with Ctq(loader) as tq_test_loader:
-        for data in loader:
-            with torch.no_grad():
-                model.set_input(data, device)
-                model.forward()
-            predicted = {**predicted, **dataset.predict_original_samples(data, model.conv_type, model.get_output())}
-
-    save(output_path, predicted)
+        with Ctq(loader) as tq_test_loader:
+            for data in tq_test_loader:
+                with torch.no_grad():
+                    model.set_input(data, device)
+                    model.forward()
+                op = dataset.predict_original_samples(data, model.conv_type, model.get_output())
+                if results is not None:
+                    results = np.concatenate((results, op))
+                else:
+                    results = op
+    save(output_path, results)
 
 
 @hydra.main(config_path="conf/config.yaml")

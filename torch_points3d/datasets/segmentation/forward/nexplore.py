@@ -270,8 +270,8 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
             log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
 
     def process(self):
-        # if not os.path.exists(self.pre_processed_path):
-        if True:
+        if not os.path.exists(self.pre_processed_path):
+        # if True:
             xyz, rgb, semantic_labels = read_s3dis_format(
                 self.path,"segment", label_out=False, verbose=self.verbose, debug=self.debug
             )
@@ -486,8 +486,6 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
         if conv_type == "DENSE":
             output = output.reshape(num_sample, -1, output.shape[-1])  # [B,N,L]
 
-
-
         setattr(batch, "_pred", output)
         for b in range(num_sample):
             # sampleid = batch.sampleid[b] #sampleid is a file
@@ -496,12 +494,12 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
             predicted = BaseDataset.get_sample(batch, "_pred", b, conv_type).reshape(-1, output.shape[-1])
             origindid = BaseDataset.get_sample(batch, SaveOriginalPosId.KEY, b, conv_type)
             #TODO need to take original pos and interpolate with transformed pos
-            full_prediction = knn_interpolate(predicted, sample_raw_pos[origindid], sample_raw_pos, k=3)
-            labels = full_prediction.max(1)[1].unsqueeze(-1)
-            full_res_results[self.test_dataset[0]] = np.hstack(
-                (sample_raw_pos.cpu().numpy(), labels.cpu().numpy(),)
+            # full_prediction = knn_interpolate(predicted, sample_raw_pos[origindid], sample_raw_pos, k=3)
+            labels = predicted.max(1)[1].unsqueeze(-1)
+            results = np.hstack(
+                (sample_raw_pos.cpu().numpy(), labels.cpu().numpy())
             )
-        return full_res_results
+        return results
 
 class _ForwardS3dis(torch.utils.data.Dataset):
     """ Dataset to run forward inference on Shapenet kind of data data. Runs on a whole folder.
