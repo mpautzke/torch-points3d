@@ -30,16 +30,18 @@ from torch_points3d.utils.colors import COLORS
 log = logging.getLogger(__name__)
 
 
-def save(prefix, predicted):
-    for key, value in predicted.items():
-        filename = os.path.splitext(key)[0]
-        out_file = filename + "_pred"
-        np.save(os.path.join(prefix, out_file), value)
+def save(prefix, results):
+    # filename = os.path.splitext(key)[0]
+    filename = "one"
+    out_file = filename + "_pred"
+    path = os.path.join(prefix, out_file)
+    np.save(path, results)
+    np.savetxt(path, results)
 
 
 def run(model: BaseModel, dataset, device, output_path):
     loaders = dataset.test_dataloaders
-    predicted: Dict = {}
+    results = None
     for loader in loaders:
         loader.dataset.name
         with Ctq(loader) as tq_test_loader:
@@ -47,9 +49,12 @@ def run(model: BaseModel, dataset, device, output_path):
                 with torch.no_grad():
                     model.set_input(data, device)
                     model.forward()
-                predicted = {**predicted, **dataset.predict_original_samples(data, model.conv_type, model.get_output())}
-
-    save(output_path, predicted)
+                op = dataset.predict_original_samples(data, model.conv_type, model.get_output())
+                if results is not None:
+                    results = np.concatenate((results, op))
+                else:
+                    results = op
+    save(output_path, results)
 
 
 @hydra.main(config_path="conf/config.yaml")
@@ -68,9 +73,16 @@ def main(cfg):
 
     # Setup the dataset config
     # Generic config
+
+    #checkpoint.data_config.test_transform[2].params.feat_names = "pos_z"
+    #setattr(checkpoint.data_config.train_transform[7], "feat_names", "pos_z")
+    #setattr(checkpoint.data_config.val_tranform[2], "feat_names", "pos_z")
+
     train_dataset_cls = get_dataset_class(checkpoint.data_config)
     setattr(checkpoint.data_config, "class", train_dataset_cls.FORWARD_CLASS)
     setattr(checkpoint.data_config, "dataroot", cfg.input_path)
+    setattr(checkpoint.data_config, "dataset_name", "segment_1.txt")
+
 
     # Datset specific configs
     if cfg.data:
@@ -86,6 +98,7 @@ def main(cfg):
     log.info("Model size = %i", sum(param.numel() for param in model.parameters() if param.requires_grad))
 
     # Set dataloaders
+    # TODO implement if you want to run through a list of PC
     dataset = instantiate_dataset(checkpoint.data_config)
     dataset.create_dataloaders(
         model, cfg.batch_size, cfg.shuffle, cfg.num_workers, False,
@@ -98,6 +111,7 @@ def main(cfg):
     model = model.to(device)
 
     # Run training / evaluation
+
     if not os.path.exists(cfg.output_path):
         os.makedirs(cfg.output_path)
 
