@@ -217,7 +217,14 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         self._split = split
         super(NexploreS3DISOriginalFused, self).__init__(root, transform, pre_transform, pre_filter)
         self._load_data(self.processed_paths[2])
-        # self.raw_test_data = torch.load(self.path)
+        self.raw_test_data = self.read_raw_data()
+
+    def read_raw_data(self):
+        xyz, rgb, semantic_labels = read_s3dis_format(
+            self.path, "segment", label_out=False, verbose=self.verbose, debug=self.debug
+        )
+
+        return Data(pos=xyz.cpu().numpy(), y=semantic_labels.cpu().numpy(), rgb=rgb.cpu().numpy())
 
     @property
     def center_labels(self):
@@ -433,14 +440,24 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
         self.test_dataset = dataset_cls(
             dataset_opt.dataroot,
             fname=dataset_opt.dataset_name,
-            sample_per_epoch=-1,
+            sample_per_epoch=1000,
             split="test",
+            radius=20,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.test_transform,
         )
 
         if dataset_opt.class_weight_method:
             self.add_weights(class_weight_method=dataset_opt.class_weight_method)
+
+        # self.raw_data = self.read_raw_data()
+
+    # def read_raw_data(self):
+    #     xyz, rgb, semantic_labels = read_s3dis_format(
+    #         self.path, "segment", label_out=False, verbose=self.verbose, debug=self.debug
+    #     )
+    #
+    #     return Data(pos=xyz, y=semantic_labels, rgb=rgb)
 
     @property
     def test_data(self):
@@ -488,18 +505,14 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
 
         setattr(batch, "_pred", output)
         for b in range(num_sample):
-            # sampleid = batch.sampleid[b] #sampleid is a file
-            sample_raw_pos = batch.pos.reshape(-1, output.shape[-1]).to(output.device)
-            # sample_raw_pos = self.test_dataset[0].get_raw(sampleid).pos.to(output.device)
             predicted = BaseDataset.get_sample(batch, "_pred", b, conv_type).reshape(-1, output.shape[-1])
-            origindid = BaseDataset.get_sample(batch, SaveOriginalPosId.KEY, b, conv_type)
+            origindid = BaseDataset.get_sample(batch, SaveOriginalPosId.KEY, b, conv_type).cpu().numpy()
             #TODO need to take original pos and interpolate with transformed pos
             # full_prediction = knn_interpolate(predicted, sample_raw_pos[origindid], sample_raw_pos, k=3)
-            labels = predicted.max(1)[1].unsqueeze(-1)
-            results = np.hstack(
-                (sample_raw_pos.cpu().numpy(), labels.cpu().numpy())
-            )
-        return results
+            labels = predicted.max(1)[1].cpu().numpy()
+            for index, id in enumerate(origindid):
+                full_res_results[id] = labels[index]
+        return full_res_results
 
 class _ForwardS3dis(torch.utils.data.Dataset):
     """ Dataset to run forward inference on Shapenet kind of data data. Runs on a whole folder.
