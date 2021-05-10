@@ -234,7 +234,7 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
     # folders = ["a40", "houston", "orange_ave_connector",
     #            "orange_oregon", "peach", "taktkeller", "tule", "floral_ave"]
 
-    folders = ["orange_ave_connector", "houston", "floral_ave", "tule"]
+    folders = ["orange_ave_connector", "houston", "floral_ave", "peach", "orange_oregon", "tule"]
 
     num_classes = S3DIS_NUM_CLASSES
 
@@ -626,6 +626,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
             self._data_path,
             sample_per_epoch=5000,
             test_area=self.dataset_opt.fold,
+            radius = 20,
             split="train",
             pre_collate_transform=self.pre_collate_transform,
             transform=self.train_transform,
@@ -635,6 +636,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
             self._data_path,
             sample_per_epoch=5000,
             test_area=self.dataset_opt.fold,
+            radius=20,
             split="val",
             pre_collate_transform=self.pre_collate_transform,
             transform=self.val_transform,
@@ -644,6 +646,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
             self._data_path,
             sample_per_epoch=5000,
             test_area=self.dataset_opt.fold,
+            radius=20,
             split="test",
             pre_collate_transform=self.pre_collate_transform,
             transform=self.test_transform,

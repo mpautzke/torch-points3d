@@ -6,6 +6,7 @@ import os
 import sys
 import numpy as np
 from typing import Dict
+import pandas as pd
 
 
 DIR = os.path.dirname(os.path.realpath(__file__))
@@ -35,13 +36,16 @@ def save(prefix, results):
     filename = "one"
     out_file = filename + "_pred"
     path = os.path.join(prefix, out_file)
-    np.save(path, results)
+    # np.save(path, results)
     np.savetxt(path, results)
+    # res = pd.DataFrame(results)
+    # res.to_csv(path, sep=' ', index=False)
 
 
 def run(model: BaseModel, dataset, device, output_path):
     loaders = dataset.test_dataloaders
-    results = None
+    raw_data = dataset.test_dataset[0].raw_test_data
+    results = {}
     for loader in loaders:
         loader.dataset.name
         with Ctq(loader) as tq_test_loader:
@@ -49,12 +53,14 @@ def run(model: BaseModel, dataset, device, output_path):
                 with torch.no_grad():
                     model.set_input(data, device)
                     model.forward()
-                op = dataset.predict_original_samples(data, model.conv_type, model.get_output())
-                if results is not None:
-                    results = np.concatenate((results, op))
-                else:
-                    results = op
-    save(output_path, results)
+                t_results = dataset.predict_original_samples(data, model.conv_type, model.get_output())
+                for key, value in t_results.items():
+                    results[key] = value
+    final = []
+    for key, value in results.items():
+        final.append(raw_data.pos[key].tolist() + raw_data.rgb[key].tolist() + [value])
+
+    save(output_path, final)
 
 
 @hydra.main(config_path="conf/config.yaml")
@@ -81,7 +87,7 @@ def main(cfg):
     train_dataset_cls = get_dataset_class(checkpoint.data_config)
     setattr(checkpoint.data_config, "class", train_dataset_cls.FORWARD_CLASS)
     setattr(checkpoint.data_config, "dataroot", cfg.input_path)
-    setattr(checkpoint.data_config, "dataset_name", "segment_1.txt")
+    setattr(checkpoint.data_config, "dataset_name", "segment_3.txt")
 
 
     # Datset specific configs
