@@ -1,2 +1,2 @@
 data:
-    forward_category: "road" #Category of the data in the folder to be infered
+    forward_category: ""

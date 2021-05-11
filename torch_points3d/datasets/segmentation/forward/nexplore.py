@@ -412,6 +412,7 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
         else:
             grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
             self._test_spheres = grid_sampler(self._datas)
+            # self._test_spheres = [d for d in self._test_spheres if d.origin_id.__len__() > 0]
 
 class NexploreS3DISFusedForwardDataset(BaseDataset):
     """ Wrapper around S3DISSphere that creates train and test datasets.
@@ -440,7 +441,7 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
         self.test_dataset = dataset_cls(
             dataset_opt.dataroot,
             fname=dataset_opt.dataset_name,
-            sample_per_epoch=1000,
+            sample_per_epoch=20,
             split="test",
             radius=20,
             pre_collate_transform=self.pre_collate_transform,
