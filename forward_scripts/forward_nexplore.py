@@ -7,6 +7,8 @@ import sys
 import numpy as np
 from typing import Dict
 import pandas as pd
+import math
+import copy
 
 
 DIR = os.path.dirname(os.path.realpath(__file__))
@@ -75,11 +77,27 @@ def run(model: BaseModel, dataset, device, output_path):
     output_timer_end = timer()
     print(f"Writing Time: {round(output_timer_end - output_timer_start, 2)} seconds")
 
-
-    fknn = FaissKNeighbors(k=5)
+    n = raw_data.pos.shape[0]
+    fknn = FaissKNeighbors(k=10)
     fknn.fit(np.array(sampled_pos), np.array(sampled_preds))
-    prediction = fknn.predict(np.array(raw_data.pos))
-    print(prediction)
+    batch_size = 50000
+    batches = math.ceil(n / batch_size)
+    raw_pos = np.array(raw_data.pos)
+    prediction = np.array([])
+    print(f"# batches: {batches}")
+    for a in range(batches):
+        print(f"batch {a}")
+        start = a * batch_size
+        end = ((a+1) * batch_size)
+        if (end > n):
+            end = n
+
+        out = fknn.predict(raw_pos[start:end])
+        prediction = np.concatenate((prediction, out))
+        # prediction.concatenate(fknn.predict(raw_pos[start:end]))
+
+        # prediction += fknn.predict(raw_pos[start:end]).tolist()
+    # prediction = fknn.predict()
     # TODO need to take original pos and interpolate with subsampled predictions
     # Takes alot of memory, will need to do it by grid
     # page through indicies
