@@ -86,7 +86,7 @@ def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debu
     """extract data from a room folder"""
     raw_path = osp.join(train_file)
     room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
-    xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float32")
+    xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
     try:
         rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
     except ValueError:
@@ -441,7 +441,7 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
         self.test_dataset = dataset_cls(
             dataset_opt.dataroot,
             fname=dataset_opt.dataset_name,
-            sample_per_epoch=20,
+            sample_per_epoch=50,
             split="test",
             radius=20,
             pre_collate_transform=self.pre_collate_transform,

@@ -7,8 +7,8 @@ checkpoint_dir: "C:/Users/mpautzke/Data/models/20_radius_medium"  #"/home/nicola
 model_name: "pointnet2_charlesssg" #TOTO
 enable_dropout: False
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
-input_path: "C:/Users/mpautzke/Data/points3d/test_pc/tule_segment_2_xs/tule_segment_2_XS"   # "/home/nicolas/deeppointcloud-benchmarks/forward_scripts/test_data"  Folder where to find the data
-
+input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/tule/segment_2"   # "/home/nicolas/deeppointcloud-benchmarks/forward_scripts/test_data"  Folder where to find the data
+#input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/a40/segment_3"
 # Dataset specific
 defaults:
   - dataset: nexplore
