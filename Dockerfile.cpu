@@ -1,6 +1,4 @@
-# Some info taken from https://towardsdatascience.com/conda-pip-and-docker-ftw-d64fe638dc45
-
-FROM nvidia/cuda:11.1.1-devel-ubuntu20.04
+FROM ubuntu:bionic
 
 SHELL [ "/bin/bash", "--login", "-c" ]
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,14 +6,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 #use local apt proxy
 #RUN echo 'Acquire::http { Proxy "http://192.168.1.105:3142"; };' >> /etc/apt/apt.conf.d/01proxy
 
-ENV TORCH_CUDA_ARCH_LIST=7.5
-
+# Install Debian packages
 RUN apt -y update && apt -y upgrade
-RUN apt -y install wget git python3 build-essential curl
+RUN apt -y install wget python3 build-essential git
 
+# Install Miniconda
 ENV CONDA_DIR=/root/miniconda3
 ENV PATH=$CONDA_DIR/bin:$PATH
-
 RUN wget -O /conda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash /conda.sh -b && \
     rm -v /conda.sh
@@ -24,30 +21,27 @@ RUN wget -O /conda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linu
 RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile && \
     conda init bash
 
-# install conda packages
+# make conda activate command available from /bin/bash --login shells
+RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
+# make conda activate command available from /bin/bash --interative shells
+RUN conda init bash
+
 RUN conda install -y -c intel mkl mkl-include && \
-    conda install -y -c pytorch -c conda-forge pytorch torchvision cudatoolkit=11.1 && \
+    conda install -y -c pytorch -c conda-forge pytorch torchvision cpuonly && \
     conda install -y -c anaconda openblas-devel && \
     conda install -y -c conda-forge pip && \
     conda install -y scipy && \
     conda clean -a -f -y
 
-# install pip packages
 RUN pip install torch==1.8.1 && \
-    pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
-    pip install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
-    pip install torch-cluster -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
-    pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
+    pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
     pip install torch-geometric && \
     pip install torch-points3d && \
+    pip install -r /src/RnD.PointcloudClassification.Points3D/requirements.txt && \
     rm -rfv /root/.cache/pip
-
-#RUN conda install -y scipy && \
-#    conda clean -a -f -y
 
 # copy code
 COPY . /src/RnD.PointcloudClassification.Points3D/
-#RUN git clone https://flint.million:xxxxx@dev.azure.com/NexploreUS/RnD/_git/RnD.PointcloudClassification.Points3D
 
 # copy entrypoint
 COPY entrypoint.sh /
