@@ -39,14 +39,18 @@ log = logging.getLogger(__name__)
 
 
 def save(path, postfix, results):
-    # filename = os.path.splitext(key)[0]
+    output_timer_start = timer()
     filename = "out"
     out_file = f"{filename}_{postfix}.txt"
+    print(f"Writing {out_file}...")
     path = os.path.join(path, out_file)
-    # np.save(path, results)
-    # np.savetxt(path, results)
+    # np.save(path, results)  #These are faster
+    # np.savetxt(path, results) #this is faster
     res_df = pd.DataFrame(results)
     res_df.to_csv(path, sep=' ', index=False, header=False)
+    output_timer_end = timer()
+    print(f"{out_file} elapsed time: {round(output_timer_end - output_timer_start, 2)} seconds")
+
 
 
 def run(model: BaseModel, dataset, device, output_path):
@@ -64,29 +68,29 @@ def run(model: BaseModel, dataset, device, output_path):
                 for key, value in t_results.items():
                     results[key] = value
 
+    print("Compiling subsampled points...")
+
     subsampled = []
     sampled_pos = []
     sampled_preds = []
-    for key, value in results.items():
+    for key, value in Ctq(results.items()):
         sampled_pos.append(raw_data.pos[key].tolist())
         sampled_preds.append(value)
         subsampled.append(raw_data.pos[key].tolist() + raw_data.rgb[key].tolist() + [value])
 
-    output_timer_start = timer()
     save(output_path,"subsampled", subsampled)
-    output_timer_end = timer()
-    print(f"Writing Time: {round(output_timer_end - output_timer_start, 2)} seconds")
+    del subsampled
+
+    fknn = FaissKNeighbors(k=5)  # use 1 to get exact or closest.  Use a higher number to remove noisy predictions
+    fknn.fit(np.array(sampled_pos), np.array(sampled_preds))
 
     n = raw_data.pos.shape[0]
-    fknn = FaissKNeighbors(k=10)
-    fknn.fit(np.array(sampled_pos), np.array(sampled_preds))
     batch_size = 50000
     batches = math.ceil(n / batch_size)
+
     raw_pos = np.array(raw_data.pos)
     prediction = np.array([])
-    print(f"# batches: {batches}")
-    for a in range(batches):
-        print(f"batch {a}")
+    for a in Ctq(range(batches)):
         start = a * batch_size
         end = ((a+1) * batch_size)
         if (end > n):
@@ -94,25 +98,18 @@ def run(model: BaseModel, dataset, device, output_path):
 
         out = fknn.predict(raw_pos[start:end])
         prediction = np.concatenate((prediction, out))
-        # prediction.concatenate(fknn.predict(raw_pos[start:end]))
 
-        # prediction += fknn.predict(raw_pos[start:end]).tolist()
-    # prediction = fknn.predict()
-    # TODO need to take original pos and interpolate with subsampled predictions
-    # Takes alot of memory, will need to do it by grid
-    # page through indicies
-    # full_prediction = knn_interpolate(torch.tensor(sampled_preds).cpu(), torch.tensor(sampled_pos).cpu(), torch.tensor(raw_data.pos).cpu(), k=3)
-    # labels = full_prediction.max(1)[1].tolist()
-    #
+    #TODO make this more efficient.  O(N)
+    # Probably could move to previous loop or use numpy instead of python list
+    print("Compiling full resolution points...")
     full = []
-    for index, val in enumerate(raw_data.pos):
+    for index, val in enumerate(Ctq(raw_data.pos)):
         full.append(raw_data.pos[index].tolist() + raw_data.rgb[index].tolist() + [prediction[index]])
 
     save(output_path, "full", full)
 
 
-
-@hydra.main(config_path="conf/config.yaml")
+@hydra.main(config_path="conf/nexplore.yaml")
 def main(cfg):
     compute_timer_start = timer()
 
@@ -137,9 +134,9 @@ def main(cfg):
 
     train_dataset_cls = get_dataset_class(checkpoint.data_config)
     setattr(checkpoint.data_config, "class", train_dataset_cls.FORWARD_CLASS)
-    # setattr(checkpoint.data_config, "first_subsampling", 0.01)
+    setattr(checkpoint.data_config, "first_subsampling", 0.2)
     setattr(checkpoint.data_config, "dataroot", cfg.input_path)
-    setattr(checkpoint.data_config, "dataset_name", "segment_2.txt")
+    setattr(checkpoint.data_config, "dataset_name", cfg.input_filename)
 
 
     # Datset specific configs

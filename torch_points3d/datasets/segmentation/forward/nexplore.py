@@ -441,9 +441,9 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
         self.test_dataset = dataset_cls(
             dataset_opt.dataroot,
             fname=dataset_opt.dataset_name,
-            sample_per_epoch=50,
+            sample_per_epoch=dataset_opt.samples,
             split="test",
-            radius=20,
+            radius=dataset_opt.radius,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.test_transform,
         )

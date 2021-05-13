@@ -1,7 +1,6 @@
 import numpy as np
 import faiss
 
-
 class FaissKNeighbors:
     def __init__(self, k=5):
         self.index = None

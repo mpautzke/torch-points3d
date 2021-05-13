@@ -1,2 +1,3 @@
 data:
-    forward_category: ""
+    samples: 1000
+    radius: 20
