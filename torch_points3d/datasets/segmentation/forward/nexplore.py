@@ -23,7 +23,7 @@ import shutil
 from torch_geometric.nn import knn_interpolate
 from torch_points3d.core.data_transform import SaveOriginalPosId
 from torch_geometric.io import read_txt_array
-
+from torch_points3d.datasets.segmentation.nexplore import shift_and_quantize, OBJECT_COLOR
 
 from torch_points3d.datasets.samplers import BalancedRandomSampler
 import torch_points3d.core.data_transform as cT
@@ -33,72 +33,6 @@ DIR = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger(__name__)
 
 S3DIS_NUM_CLASSES = 3
-
-INV_OBJECT_LABEL = {
-    0: "other",
-    1: "power_pole",
-    2: "road"
-}
-
-OBJECT_COLOR = np.asarray(
-    [
-        [233, 229, 107],  # 'road' .-> .yellow
-        [95, 156, 196],  # 'power_pole' .-> . blue
-        # [179, 116, 81],  # 'wall'  ->  brown
-        # [241, 149, 131],  # 'beam'  ->  salmon
-        # [81, 163, 148],  # 'column'  ->  bluegreen
-        # [77, 174, 84],  # 'window'  ->  bright green
-        # [108, 135, 75],  # 'door'   ->  dark green
-        # [41, 49, 101],  # 'chair'  ->  darkblue
-        # [79, 79, 76],  # 'table'  ->  dark grey
-        # [223, 52, 52],  # 'bookcase'  ->  red
-        # [89, 47, 95],  # 'sofa'  ->  purple
-        # [81, 109, 114],  # 'board'   ->  grey
-        # [233, 233, 229],  # 'clutter'  ->  light grey
-        [0, 0, 0],  # unlabelled .->. black
-    ]
-)
-
-OBJECT_LABEL = {name: i for i, name in INV_OBJECT_LABEL.items()}
-
-#segment types
-ROOM_TYPES = {
-    "segment": 0,
-    "other": 1,
-}
-
-#validation segments
-VALIDATION_ROOMS = [
-    "segment",
-]
-
-################################### UTILS #######################################
-
-
-def object_name_to_label(object_class):
-    """convert from object name in S3DIS to an int"""
-
-    object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
-    return object_label
-
-
-def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debug=False):
-    """extract data from a room folder"""
-    raw_path = osp.join(train_file)
-    room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
-    xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
-    try:
-        rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
-    except ValueError:
-        rgb = np.zeros((room_ver.shape[0], 3), dtype="uint8")
-        log.warning("WARN - corrupted rgb data for file %s" % raw_path)
-
-    n_ver = len(room_ver)
-    semantic_labels = np.zeros((n_ver,), dtype="int64")
-
-    return torch.from_numpy(xyz), torch.from_numpy(rgb), torch.from_numpy(semantic_labels)
-
-
 
 def to_ply(pos, label, file):
     assert len(label.shape) == 1
@@ -117,84 +51,54 @@ def to_ply(pos, label, file):
     el = PlyElement.describe(ply_array, "S3DIS")
     PlyData([el], byte_order=">").write(file)
 
+################################### UTILS #######################################
 
-################################### 1m cylinder s3dis ###################################
+def read_s3dis_format(train_file, shift_quantize = False):
+    """extract data from a room folder"""
+    raw_path = osp.join(train_file)
+    room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
 
+    xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
 
-class S3DIS1x1Dataset(BaseDataset):
-    def __init__(self, dataset_opt):
-        super().__init__(dataset_opt)
+    shift_vector = np.array([0,0,0])
+    if shift_quantize:
+        #TODO do we need to keep shift_vector
+        xyz, shift_vector = shift_and_quantize(xyz)
 
-        pre_transform = self.pre_transform
-        self.train_dataset = S3DIS1x1(
-            self._data_path,
-            test_area=self.dataset_opt.fold,
-            train=True,
-            pre_transform=self.pre_transform,
-            transform=self.train_transform,
-        )
-        self.test_dataset = S3DIS1x1(
-            self._data_path,
-            test_area=self.dataset_opt.fold,
-            train=False,
-            pre_transform=pre_transform,
-            transform=self.test_transform,
-        )
-        if dataset_opt.class_weight_method:
-            self.add_weights(class_weight_method=dataset_opt.class_weight_method)
+    # outliers = remove_outliers(xyz)
 
-    def get_tracker(self, wandb_log: bool, tensorboard_log: bool):
-        """Factory method for the tracker
+    try:
+        rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
+    except ValueError:
+        rgb = np.zeros((room_ver.shape[0], 3), dtype="uint8")
+        log.warning("WARN - corrupted rgb data for file %s" % raw_path)
 
-        Arguments:
-            wandb_log - Log using weight and biases
-            tensorboard_log - Log using tensorboard
-        Returns:
-            [BaseTracker] -- tracker
-        """
-        from torch_points3d.metrics.segmentation_tracker import SegmentationTracker
+    n_ver = len(room_ver)
+    semantic_labels = np.zeros((n_ver,), dtype="int64")
 
-        return SegmentationTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
+    return torch.from_numpy(xyz), torch.from_numpy(rgb), torch.from_numpy(semantic_labels)
 
+#TODO Would need to modify original file if we remove outliers as we depend on original index
+def remove_outliers(xyz, x_c = 5, y_c = 5, z_c = 20):
+    # a = np.array(x)
+    x_index = outlier_index(xyz[:,0], x_c)
+    y_index = outlier_index(xyz[:,1], y_c)
+    z_index = outlier_index(xyz[:,2], z_c)
 
-################################### Used for fused s3dis radius sphere ###################################
+    xy_index = np.union1d(x_index, y_index)
+    xyz_index = np.union1d(xy_index, z_index)
 
+    return xyz_index
+
+def outlier_index(a, outlierConstant):
+    upper_quartile = np.percentile(a, 75)
+    lower_quartile = np.percentile(a, 25)
+    IQR = (upper_quartile - lower_quartile) * outlierConstant
+    quartileSet = (lower_quartile - IQR, upper_quartile + IQR)
+    results = np.where((a <= quartileSet[0]) | (a >= quartileSet[1]))
+    return results
 
 class NexploreS3DISOriginalFused(InMemoryDataset):
-    """ Original S3DIS dataset. Each area is loaded individually and can be processed using a pre_collate transform. 
-    This transform can be used for example to fuse the area into a single space and split it into 
-    spheres or smaller regions. If no fusion is applied, each element in the dataset is a single room by default.
-
-    http://buildingparser.stanford.edu/dataset.html
-
-    Parameters
-    ----------
-    root: str
-        path to the directory where the data will be saved
-    test_area: int
-        number between 1 and 6 that denotes the area used for testing
-    split: str
-        can be one of train, trainval, val or test
-    pre_collate_transform:
-        Transforms to be applied before the data is assembled into samples (apply fusing here for example)
-    keep_instance: bool
-        set to True if you wish to keep instance data
-    pre_transform
-    transform
-    pre_filter
-    """
-
-    # form_url = (
-    #     "https://docs.google.com/forms/d/e/1FAIpQLScDimvNMCGhy_rmBA2gHfDu3naktRm6A8BPwAWWDv-Uhm6Shw/viewform?c=0&w=1"
-    # )
-    # download_url = "https://drive.google.com/uc?id=0BweDykwS9vIobkVPN0wzRzFwTDg&export=download"
-    # zip_name = "Stanford3dDataset_v1.2_Version.zip"
-    # path_file = osp.join(DIR, "s3dis.patch")
-    # file_name = "Stanford3dDataset_v1.2"
-    # folders = ["Area_{}".format(i) for i in range(1, 7)]
-    # folders = ["a40", "houston", "orange_ave_connector",
-    #            "orange_oregon", "peach", "taktkeller", "tule", "floral_ave"]
-
     num_classes = S3DIS_NUM_CLASSES
 
     def __init__(
@@ -217,14 +121,15 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         self._split = split
         super(NexploreS3DISOriginalFused, self).__init__(root, transform, pre_transform, pre_filter)
         self._load_data(self.processed_paths[2])
-        self.raw_test_data = self.read_raw_data()
+        self.raw_test_data = self.read_raw_data() #TODO do not hold in mem
+        self.shifted_test_data = self.read_raw_data(shift_quantize = True) #TODO do not hold in mem
 
-    def read_raw_data(self):
+    def read_raw_data(self, shift_quantize = False):
         xyz, rgb, semantic_labels = read_s3dis_format(
-            self.path, "segment", label_out=False, verbose=self.verbose, debug=self.debug
+            self.path, shift_quantize = False
         )
 
-        return Data(pos=xyz.cpu().numpy(), y=semantic_labels.cpu().numpy(), rgb=rgb.cpu().numpy())
+        return Data(pos=xyz.numpy(), y=semantic_labels.numpy(), rgb=rgb.numpy())
 
     @property
     def center_labels(self):
@@ -280,7 +185,7 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         if not os.path.exists(self.pre_processed_path):
         # if True:
             xyz, rgb, semantic_labels = read_s3dis_format(
-                self.path,"segment", label_out=False, verbose=self.verbose, debug=self.debug
+                self.path, shift_quantize=True
             )
 
             rgb_norm = rgb.float() / 255.0
@@ -412,26 +317,9 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
         else:
             grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
             self._test_spheres = grid_sampler(self._datas)
-            # self._test_spheres = [d for d in self._test_spheres if d.origin_id.__len__() > 0]
+            self._test_spheres = [d for d in self._test_spheres if d.origin_id.__len__() > 1]
 
 class NexploreS3DISFusedForwardDataset(BaseDataset):
-    """ Wrapper around S3DISSphere that creates train and test datasets.
-
-    http://buildingparser.stanford.edu/dataset.html
-
-    Parameters
-    ----------
-    dataset_opt: omegaconf.DictConfig
-        Config dictionary that should contain
-
-            - dataroot
-            - fold: test_area parameter
-            - pre_collate_transform
-            - train_transforms
-            - test_transforms
-    """
-
-    INV_OBJECT_LABEL = INV_OBJECT_LABEL
 
     def __init__(self, dataset_opt):
         super().__init__(dataset_opt)
@@ -441,9 +329,9 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
         self.test_dataset = dataset_cls(
             dataset_opt.dataroot,
             fname=dataset_opt.dataset_name,
-            sample_per_epoch=50,
+            sample_per_epoch=dataset_opt.samples,
             split="test",
-            radius=20,
+            radius=dataset_opt.radius,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.test_transform,
         )

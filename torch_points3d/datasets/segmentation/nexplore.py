@@ -32,15 +32,16 @@ S3DIS_NUM_CLASSES = 3
 
 INV_OBJECT_LABEL = {
     0: "other",
-    1: "power_pole",
-    2: "road"
+    1: "road",
+    2: "powerpole",
+    3: "cable"
 }
 
 OBJECT_COLOR = np.asarray(
     [
         [233, 229, 107],  # 'road' .-> .yellow
-        [95, 156, 196],  # 'power_pole' .-> . blue
-        # [179, 116, 81],  # 'wall'  ->  brown
+        [95, 156, 196],  # 'powerpole' .-> . blue
+        [179, 116, 81],  # 'cable'  ->  brown
         # [241, 149, 131],  # 'beam'  ->  salmon
         # [81, 163, 148],  # 'column'  ->  bluegreen
         # [77, 174, 84],  # 'window'  ->  bright green
@@ -100,7 +101,11 @@ def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debu
         return True
     else:
         room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
-        xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float32")
+        xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
+
+        #Shifts to local and quantizes to float32 by default
+        xyz, shift_vector = shift_and_quantize(xyz)
+
         try:
             rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
         except ValueError:
@@ -114,7 +119,7 @@ def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debu
         semantic_labels = np.zeros((n_ver,), dtype="int64")
         room_label = np.asarray([room_label])
         instance_labels = np.zeros((n_ver,), dtype="int64")
-        objects = glob.glob(osp.join(train_file, "Annotations/*.txt"))
+        objects = glob.glob(osp.join(train_file, "annotations/*.txt"))
         i_object = 1
         for single_object in objects:
             object_name = os.path.splitext(os.path.basename(single_object))[0]
@@ -138,6 +143,30 @@ def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debu
             torch.from_numpy(room_label),
         )
 
+def shift_and_quantize(xyz, qtype = np.float32):
+    shift_threshold = 100
+    x = xyz[:,0].min()
+    y = xyz[:,1].min()
+    z = xyz[:,2].min()
+
+    shift_x = calc_shift(x, shift_threshold)
+    shift_y = calc_shift(y, shift_threshold)
+    shift_z = calc_shift(z, shift_threshold)
+
+    shift = np.array([shift_x, shift_y, shift_z])
+    scale = 1
+
+    out = np.add(xyz, shift)
+    out = np.multiply(out, scale)
+
+    return out.astype(qtype), shift
+
+def calc_shift(number, threshold):
+    shift = 0
+    if number / threshold > 1:
+        r = int(number % threshold)
+        shift = int(number - r) * -1.00
+    return shift
 
 def to_ply(pos, label, file):
     assert len(label.shape) == 1
@@ -155,48 +184,6 @@ def to_ply(pos, label, file):
     ply_array["blue"] = colors[:, 2]
     el = PlyElement.describe(ply_array, "S3DIS")
     PlyData([el], byte_order=">").write(file)
-
-
-################################### 1m cylinder s3dis ###################################
-
-
-class S3DIS1x1Dataset(BaseDataset):
-    def __init__(self, dataset_opt):
-        super().__init__(dataset_opt)
-
-        pre_transform = self.pre_transform
-        self.train_dataset = S3DIS1x1(
-            self._data_path,
-            test_area=self.dataset_opt.fold,
-            train=True,
-            pre_transform=self.pre_transform,
-            transform=self.train_transform,
-        )
-        self.test_dataset = S3DIS1x1(
-            self._data_path,
-            test_area=self.dataset_opt.fold,
-            train=False,
-            pre_transform=pre_transform,
-            transform=self.test_transform,
-        )
-        if dataset_opt.class_weight_method:
-            self.add_weights(class_weight_method=dataset_opt.class_weight_method)
-
-    def get_tracker(self, wandb_log: bool, tensorboard_log: bool):
-        """Factory method for the tracker
-
-        Arguments:
-            wandb_log - Log using weight and biases
-            tensorboard_log - Log using tensorboard
-        Returns:
-            [BaseTracker] -- tracker
-        """
-        from torch_points3d.metrics.segmentation_tracker import SegmentationTracker
-
-        return SegmentationTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
-
-
-################################### Used for fused s3dis radius sphere ###################################
 
 
 class NexploreS3DISOriginalFused(InMemoryDataset):
@@ -230,11 +217,21 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
     # zip_name = "Stanford3dDataset_v1.2_Version.zip"
     # path_file = osp.join(DIR, "s3dis.patch")
     # file_name = "Stanford3dDataset_v1.2"
-    # folders = ["Area_{}".format(i) for i in range(1, 7)]
-    # folders = ["a40", "houston", "orange_ave_connector",
-    #            "orange_oregon", "peach", "taktkeller", "tule", "floral_ave"]
 
-    folders = ["orange_ave_connector", "houston", "floral_ave", "peach", "orange_oregon", "tule"]
+    folders = [
+        # "a40",
+        # "dover_flint",
+        "dutch_john",
+        "floral_ave",
+        "handford_1",
+        "handford_2",
+        "houston",
+        "orange_ave_connector",
+        # "orange_oregon",
+        "peach",
+        # "taktkeller",
+        # "tule"
+    ]
 
     num_classes = S3DIS_NUM_CLASSES
 
@@ -320,25 +317,6 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         if len(raw_folders) == 0:
             # if not os.path.exists(osp.join(self.root, self.zip_name)):
             log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
-            #     log.info("Please, register yourself by filling up the form at {}".format(self.form_url))
-            #     log.info("***")
-            #     log.info(
-            #         "Press any key to continue, or CTRL-C to exit. By continuing, you confirm filling up the form."
-            #     )
-            #     input("")
-            #     gdown.download(self.download_url, osp.join(self.root, self.zip_name), quiet=False)
-            # extract_zip(os.path.join(self.root, self.zip_name), self.root)
-            # shutil.rmtree(self.raw_dir)
-            # os.rename(osp.join(self.root, self.file_name), self.raw_dir)
-            # shutil.copy(self.path_file, self.raw_dir)
-            # cmd = "patch -ruN -p0 -d  {} < {}".format(self.raw_dir, osp.join(self.raw_dir, "s3dis.patch"))
-            # os.system(cmd)
-        # else:
-        #     intersection = len(set(self.folders).intersection(set(raw_folders)))
-        #     if intersection != 6:
-        #         shutil.rmtree(self.raw_dir)
-        #         os.makedirs(self.raw_dir)
-        #         self.download()
 
     def process(self):
         if not os.path.exists(self.pre_processed_path):
@@ -434,7 +412,7 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
 
         train_data_list = list(train_data_list.values())
         val_data_list = list(val_data_list.values())
-        val_data_list = [f for f in val_data_list if len(f) > 0]
+        # val_data_list = [f for f in val_data_list if len(f) > 0]
         trainval_data_list = list(trainval_data_list.values())
         test_data_list = data_list[self.test_area]
 
@@ -593,6 +571,7 @@ class NexploreNexploreS3DISCylinder(NexploreS3DISSphere):
         else:
             grid_sampler = cT.GridCylinderSampling(self._radius, self._radius, center=False)
             self._test_spheres = grid_sampler(self._datas)
+            self._test_spheres = [d for d in self._test_spheres if d.origin_id.__len__() > 1]
 
 
 class NexploreS3DISFusedDataset(BaseDataset):
@@ -634,7 +613,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.val_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=5000,
+            sample_per_epoch=-1,
             test_area=self.dataset_opt.fold,
             radius=20,
             split="val",
@@ -644,7 +623,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.test_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=5000,
+            sample_per_epoch=-1,
             test_area=self.dataset_opt.fold,
             radius=20,
             split="test",
