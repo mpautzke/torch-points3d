@@ -6,9 +6,12 @@ enable_cudnn: True
 checkpoint_dir: "C:/Users/mpautzke/Data/models/20_radius_medium"  #"/home/nicolas/deeppointcloud-benchmarks/outputs/2020-02-24/15-02-47"  "{your_path}/outputs/2020-01-28/11-04-13" for example
 model_name: "pointnet2_charlesssg" #TOTO
 enable_dropout: False
+process_full_resolution: True
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
-input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/tule/segment_1"   # "/home/nicolas/deeppointcloud-benchmarks/forward_scripts/test_data"  Folder where to find the data
-input_filename: "segment_1.txt"
+#input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/a40/segment_3"   # "/home/nicolas/deeppointcloud-benchmarks/forward_scripts/test_data"  Folder where to find the data
+input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/tule/segment_2"
+input_filename: "segment_2.txt"
+
 #input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/a40/segment_3"
 # Dataset specific
 defaults:

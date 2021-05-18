@@ -2,17 +2,17 @@ import numpy as np
 import faiss
 
 class FaissKNeighbors:
-    def __init__(self, k=5):
+    def __init__(self, k=5, nlist=3500):
         self.index = None
         self.gpu_index_ivf = None
         self.y = None
         self.k = k
         self.res = faiss.StandardGpuResources()
+        self.nlist = nlist
 
     def fit(self, X, y):
-        nlist = 100
         self.index = faiss.IndexFlatL2(X.shape[1])
-        self.index_ivf = faiss.IndexIVFFlat(self.index, X.shape[1], nlist, faiss.METRIC_L2)
+        self.index_ivf = faiss.IndexIVFFlat(self.index, X.shape[1], self.nlist, faiss.METRIC_L2)
         self.gpu_index_ivf = faiss.index_cpu_to_gpu(self.res, 0, self.index_ivf)
         assert not self.gpu_index_ivf.is_trained
         self.gpu_index_ivf.train(X.astype(np.float32))

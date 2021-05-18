@@ -52,9 +52,9 @@ def save(path, postfix, results):
     print(f"{out_file} elapsed time: {round(output_timer_end - output_timer_start, 2)} seconds")
 
 
-
-def run(model: BaseModel, dataset, device, output_path):
+def run(model: BaseModel, dataset, device, output_path, process_full = True):
     loaders = dataset.test_dataloaders
+    shifted_raw_data = dataset.test_dataset[0].shifted_test_data
     raw_data = dataset.test_dataset[0].raw_test_data
     results = {}
     for loader in loaders:
@@ -74,21 +74,24 @@ def run(model: BaseModel, dataset, device, output_path):
     sampled_pos = []
     sampled_preds = []
     for key, value in Ctq(results.items()):
-        sampled_pos.append(raw_data.pos[key].tolist())
+        sampled_pos.append(shifted_raw_data.pos[key].tolist())
         sampled_preds.append(value)
         subsampled.append(raw_data.pos[key].tolist() + raw_data.rgb[key].tolist() + [value])
 
     save(output_path,"subsampled", subsampled)
     del subsampled
 
+    if not process_full:
+        return
+
     fknn = FaissKNeighbors(k=5)  # use 1 to get exact or closest.  Use a higher number to remove noisy predictions
     fknn.fit(np.array(sampled_pos), np.array(sampled_preds))
 
-    n = raw_data.pos.shape[0]
-    batch_size = 50000
+    n = shifted_raw_data.pos.shape[0]
+    batch_size = 65000
     batches = math.ceil(n / batch_size)
 
-    raw_pos = np.array(raw_data.pos)
+    raw_pos = np.array(shifted_raw_data.pos)
     prediction = np.array([])
     for a in Ctq(range(batches)):
         start = a * batch_size
@@ -134,7 +137,8 @@ def main(cfg):
 
     train_dataset_cls = get_dataset_class(checkpoint.data_config)
     setattr(checkpoint.data_config, "class", train_dataset_cls.FORWARD_CLASS)
-    setattr(checkpoint.data_config, "first_subsampling", 0.2)
+    setattr(checkpoint.data_config.test_transform[0], "lparams", [5000])
+    # setattr(checkpoint.data_config, "first_subsampling", 1)
     setattr(checkpoint.data_config, "dataroot", cfg.input_path)
     setattr(checkpoint.data_config, "dataset_name", cfg.input_filename)
 
@@ -173,7 +177,7 @@ def main(cfg):
     if not os.path.exists(cfg.output_path):
         os.makedirs(cfg.output_path)
 
-    run(model, dataset, device, cfg.output_path)
+    run(model, dataset, device, cfg.output_path, cfg.process_full_resolution)
 
     compute_timer_end = timer()
 
