@@ -1,31 +1,15 @@
-num_workers: 0
-batch_size: 1
-cuda: 1
+num_workers: 2
+batch_size: 16
+cuda: 0
 weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest]
 enable_cudnn: True
-checkpoint_dir: "C:/Users/mpautzke/Data/models/20_radius_medium"  #"/home/nicolas/deeppointcloud-benchmarks/outputs/2020-02-24/15-02-47"  "{your_path}/outputs/2020-01-28/11-04-13" for example
-model_name: "pointnet2_charlesssg" #TOTO
+checkpoint_dir: "C:/Users/mpautzke/Projects/pc_classification/torch-points3d/outputs/benchmark/benchmark-pointnet2_charlesssg-20210505_131918" # "{your_path}/outputs/2020-01-28/11-04-13" for example
+model_name: "pointnet2_charlesssg"
 enable_dropout: False
-output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
-input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/tule/segment_2"   # "/home/nicolas/deeppointcloud-benchmarks/forward_scripts/test_data"  Folder where to find the data
-#input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/a40/segment_3"
+output_path: "C:/Users/mpautzke/Data/output/shapenet" # Where the output goes
+input_path: "C:/Users/mpautzke/Data/pc_cap_test" # Folder where to find the data
+
 # Dataset specific
 defaults:
-  - dataset: nexplore
-    optional: true
-
-#num_workers: 2
-#batch_size: 16
-#cuda: 0
-#weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest]
-#enable_cudnn: True
-#checkpoint_dir: "C:/Users/mpautzke/Projects/pc_classification/torch-points3d/outputs/benchmark/benchmark-pointnet2_charlesssg-20210505_131918" # "{your_path}/outputs/2020-01-28/11-04-13" for example
-#model_name: "pointnet2_charlesssg"
-#enable_dropout: False
-#output_path: "C:/Users/mpautzke/Data/output/shapenet" # Where the output goes
-#input_path: "C:/Users/mpautzke/Data/points3d/test_pc/tule_segment_2_xs" # Folder where to find the data
-#
-## Dataset specific
-#defaults:
-#    - dataset: "shapenet"
-#      optional: True
+    - dataset: "shapenet"
+      optional: True
