@@ -2,7 +2,7 @@
 training:
 
     epochs: 6000
-    num_workers: 6
+    num_workers: 0
     batch_size: 32
     shuffle: True
     cuda: 0

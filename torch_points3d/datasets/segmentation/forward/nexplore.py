@@ -23,7 +23,7 @@ import shutil
 from torch_geometric.nn import knn_interpolate
 from torch_points3d.core.data_transform import SaveOriginalPosId
 from torch_geometric.io import read_txt_array
-from torch_points3d.datasets.segmentation.nexplore import shift_and_quantize, OBJECT_COLOR
+from torch_points3d.datasets.segmentation.nexplore_old import shift_and_quantize, OBJECT_COLOR
 
 from torch_points3d.datasets.samplers import BalancedRandomSampler
 import torch_points3d.core.data_transform as cT
@@ -317,7 +317,7 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
         else:
             grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
             self._test_spheres = grid_sampler(self._datas)
-            self._test_spheres = [d for d in self._test_spheres if d.origin_id.__len__() > 1]
+            self._test_spheres = [d for d in self._test_spheres if d.origin_id.__len__() >= 10000]
 
 class NexploreS3DISFusedForwardDataset(BaseDataset):
 
