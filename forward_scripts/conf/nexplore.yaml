@@ -9,7 +9,7 @@ enable_dropout: False
 process_full_resolution: True
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
 #input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/a40/segment_3"   # "/home/nicolas/deeppointcloud-benchmarks/forward_scripts/test_data"  Folder where to find the data
-input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/tule/segment_2"
+input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/a40/segment_2"
 input_filename: "segment_2.txt"
 
 #input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/a40/segment_3"
