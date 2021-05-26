@@ -45,9 +45,9 @@ def save(path, postfix, results):
     print(f"Writing {out_file}...")
     path = os.path.join(path, out_file)
     # np.save(path, results)  #These are faster
-    # np.savetxt(path, results) #this is faster
-    res_df = pd.DataFrame(results)
-    res_df.to_csv(path, sep=' ', index=False, header=False)
+    np.savetxt(path, results, fmt=['%.18e', '%.18e', '%.18e', '%i', '%i', '%i', '%i'])
+    # res_df = pd.DataFrame(results)
+    # res_df.to_csv(path, sep=' ', index=False, header=False)
     output_timer_end = timer()
     print(f"{out_file} elapsed time: {round(output_timer_end - output_timer_start, 2)} seconds")
 
@@ -69,23 +69,41 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True):
                     results[key] = value
 
     print("Compiling subsampled points...")
+    indices = list(results.keys())
 
-    subsampled = []
-    sampled_pos = []
-    sampled_preds = []
-    for key, value in Ctq(results.items()):
-        sampled_pos.append(shifted_raw_data.pos[key].tolist())
-        sampled_preds.append(value)
-        subsampled.append(raw_data.pos[key].tolist() + raw_data.rgb[key].tolist() + [value])
+    pos = np.array(raw_data.pos[indices], dtype=np.float64)
+    rgb = np.array(raw_data.rgb[indices], dtype=np.int)
+    values = np.array(list(results.values()), dtype=np.int).reshape((-1, 1))
+
+    subsampled = concatenate(pos, rgb, values)
 
     save(output_path,"subsampled", subsampled)
     del subsampled
 
+    # subsampled = []
+    # sampled_pos = []
+    # sampled_preds = []
+    # for key, value in Ctq(results.items()):
+    #     sampled_pos.append(shifted_raw_data.pos[key].tolist())
+    #     sampled_preds.append(value)
+    #     subsampled.append(raw_data.pos[key].tolist() + raw_data.rgb[key].tolist() + [value])
+    #
+    # save(output_path,"subsampled", subsampled)
+    # del subsampled
+
     if not process_full:
         return
 
+    pos = np.array(shifted_raw_data.pos[indices])
+    rgb = np.array(shifted_raw_data.rgb[indices])
+    values = np.array(list(results.values())).reshape((-1, 1))
+
+    shifted_subsampled = concatenate(pos, rgb, values)
+    save(output_path, "shifted_subsampled", shifted_subsampled)
+
     fknn = FaissKNeighbors(k=5)  # use 1 to get exact or closest.  Use a higher number to remove noisy predictions
-    fknn.fit(np.array(sampled_pos), np.array(sampled_preds))
+    # fknn.fit(np.array(sampled_pos), np.array(sampled_preds))
+    fknn.fit(shifted_raw_data.pos[indices], np.array(list(results.values())))
 
     n = shifted_raw_data.pos.shape[0]
     batch_size = 65000
@@ -102,15 +120,20 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True):
         out = fknn.predict(raw_pos[start:end])
         prediction = np.concatenate((prediction, out))
 
-    #TODO make this more efficient.  O(N)
-    # Probably could move to previous loop or use numpy instead of python list
-    print("Compiling full resolution points...")
-    full = []
-    for index, val in enumerate(Ctq(raw_data.pos)):
-        full.append(raw_data.pos[index].tolist() + raw_data.rgb[index].tolist() + [prediction[index]])
+    # print("Compiling full resolution points...")
+    # full_res = []
+    # for index, val in enumerate(Ctq(raw_data.pos)):
+    #     full_res.append(raw_data.pos[index].tolist() + raw_data.rgb[index].tolist() + [prediction[index]])
 
-    save(output_path, "full", full)
+    full_res = concatenate(raw_data.pos, raw_data.rgb, prediction.reshape((-1, 1)))
 
+    save(output_path, "full", full_res)
+
+def concatenate(pos, rgb, preds):
+    pos_rgb = np.concatenate((pos, rgb), axis=1)
+    pos_rgb_preds = np.concatenate((pos_rgb, preds), axis=1)
+
+    return pos_rgb_preds
 
 @hydra.main(config_path="conf/nexplore.yaml")
 def main(cfg):
