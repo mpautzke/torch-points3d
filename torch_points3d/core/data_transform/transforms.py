@@ -155,6 +155,76 @@ class GridSphereSampling(object):
         return "{}(radius={}, center={})".format(self.__class__.__name__, self._radius, self._center)
 
 
+class GridSphereEstSampling(object):
+    """Fits the point cloud to a grid and for each point in this grid,
+    create a sphere with a radius r
+
+    Parameters
+    ----------
+    radius: float
+        Radius of the sphere to be sampled.
+    grid_size: float, optional
+        Grid_size to be used with GridSampling3D to select spheres center. If None, radius will be used
+    delattr_kd_tree: bool, optional
+        If True, KDTREE_KEY should be deleted as an attribute if it exists
+    center: bool, optional
+        If True, a centre transform is apply on each sphere.
+    """
+
+    KDTREE_KEY = KDTREE_KEY
+
+    def __init__(self, radius, grid_size=None, delattr_kd_tree=True, center=True):
+        self._radius = eval(radius) if isinstance(radius, str) else float(radius)
+        grid_size = eval(grid_size) if isinstance(grid_size, str) else float(grid_size)
+        self._grid_sampling = GridSampling3D(size=grid_size if grid_size else self._radius)
+        self._delattr_kd_tree = delattr_kd_tree
+        self._center = center
+
+    def _process(self, data):
+        # if not hasattr(data, self.KDTREE_KEY):
+        #     tree = KDTree(np.asarray(data.pos), leaf_size=50)
+        # else:
+        #     tree = getattr(data, self.KDTREE_KEY)
+
+        # The kdtree has bee attached to data for optimization reason.
+        # However, it won't be used for down the transform pipeline and should be removed before any collate func call.
+        # if hasattr(data, self.KDTREE_KEY) and self._delattr_kd_tree:
+        #     delattr(data, self.KDTREE_KEY)
+
+        # apply grid sampling
+        grid_data = self._grid_sampling(data.clone())
+        return len(grid_data.pos)
+
+        # datas = []
+        # for grid_center in np.asarray(grid_data.pos):
+        #     pts = np.asarray(grid_center)[np.newaxis]
+        #
+        #     # Find closest point within the original data
+        #     ind = torch.LongTensor(tree.query(pts, k=1)[1][0])
+        #     grid_label = data.y[ind]
+        #
+        #     # Find neighbours within the original data
+        #     ind = torch.LongTensor(tree.query_radius(pts, r=self._radius)[0])
+        #     sampler = SphereSampling(self._radius, grid_center, align_origin=self._center)
+        #     new_data = sampler(data)
+        #     new_data.center_label = grid_label
+        #
+        #     datas.append(new_data)
+        # return datas
+
+    def __call__(self, data):
+        if isinstance(data, list):
+            data = [self._process(d) for d in tq(data)]
+            data = sum(data)
+            # data = list(itertools.chain(*data))  # 2d list needs to be flatten
+        else:
+            data = self._process(data)
+        return data
+
+    def __repr__(self):
+        return "{}(radius={}, center={})".format(self.__class__.__name__, self._radius, self._center)
+
+
 class GridCylinderSampling(object):
     """Fits the point cloud to a grid and for each point in this grid,
     create a cylinder with a radius r

@@ -23,7 +23,7 @@ import shutil
 from torch_geometric.nn import knn_interpolate
 from torch_points3d.core.data_transform import SaveOriginalPosId
 from torch_geometric.io import read_txt_array
-from torch_points3d.datasets.segmentation.nexplore import shift_and_quantize, OBJECT_COLOR
+from torch_points3d.datasets.segmentation.nexplore_old import shift_and_quantize, OBJECT_COLOR
 
 from torch_points3d.datasets.samplers import BalancedRandomSampler
 import torch_points3d.core.data_transform as cT
@@ -62,7 +62,7 @@ def read_s3dis_format(train_file, shift_quantize = False):
 
     shift_vector = np.array([0,0,0])
     if shift_quantize:
-        #TODO do we need to keep shift_vector
+        #TODO do we need to keep shift_vector?
         xyz, shift_vector = shift_and_quantize(xyz)
 
     # outliers = remove_outliers(xyz)
@@ -106,6 +106,8 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         root,
         fname,
         split="train",
+        radius=20,
+        sample_per_epoch=-1,
         transform=None,
         pre_transform=None,
         pre_collate_transform=None,
@@ -113,20 +115,25 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         verbose=False,
         debug=False,
     ):
+        self.fname = fname
         self.path = os.path.join(root, fname)
         self.transform = transform
         self.pre_collate_transform = pre_collate_transform
         self.verbose = verbose
         self.debug = debug
         self._split = split
+        self._sample_per_epoch = sample_per_epoch
+        self._radius = radius
+        self.root = root
         super(NexploreS3DISOriginalFused, self).__init__(root, transform, pre_transform, pre_filter)
-        self._load_data(self.processed_paths[2])
-        self.raw_test_data = self.read_raw_data() #TODO do not hold in mem
-        self.shifted_test_data = self.read_raw_data(shift_quantize = True) #TODO do not hold in mem
 
-    def read_raw_data(self, shift_quantize = False):
+        self._load_data(self.processed_file_names[0])
+        self.raw_test_data = self.read_raw_data() #TODO do not hold in mem
+        self.shifted_test_data = self.read_raw_data(shift_quantize=True) #TODO do not hold in mem
+
+    def read_raw_data(self, shift_quantize=False):
         xyz, rgb, semantic_labels = read_s3dis_format(
-            self.path, shift_quantize = False
+            self.path, shift_quantize=shift_quantize
         )
 
         return Data(pos=xyz.numpy(), y=semantic_labels.numpy(), rgb=rgb.numpy())
@@ -155,16 +162,12 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
     @property
     def raw_areas_paths(self):
         return [self.path]
-        # return [os.path.join(self.processed_dir, "raw_area_%i.pt" % i) for i in range(6)]
-
 
     #used for processed_paths
     @property
     def processed_file_names(self):
         return (
-            [self.path]
-            + [self.pre_processed_path]
-            + [self.transformed_path]
+            [os.path.join(self.processed_dir, f"{self.fname}.pt")]
         )
 
     @property
@@ -182,8 +185,7 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
             log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
 
     def process(self):
-        if not os.path.exists(self.pre_processed_path):
-        # if True:
+        if not os.path.exists(self.processed_file_names[0]):
             xyz, rgb, semantic_labels = read_s3dis_format(
                 self.path, shift_quantize=True
             )
@@ -191,35 +193,16 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
             rgb_norm = rgb.float() / 255.0
             data = Data(pos=xyz, y=semantic_labels, rgb=rgb_norm)
 
-            #Placeholder for multi segment
-            data_list = [[] for _ in range(1)]
-            data_list[0].append(data)
+            if self.pre_collate_transform:
+                log.info("pre_collate_transform ...")
+                log.info(self.pre_collate_transform)
+                data = self.pre_collate_transform([data])
 
-            # raw_areas = cT.PointCloudFusion()(data_list)
-            # for i, area in enumerate(raw_areas):
-            #     if area.__len__() > 0:
-            #         torch.save(area, self.raw_areas_paths[i])
+            grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
+            data = grid_sampler(data)
+            data = [d for d in data if len(d.origin_id) > 10]
 
-            for area_datas in data_list:
-                # Apply pre_transform
-                if self.pre_transform is not None:
-                    for data in area_datas:
-                        data = self.pre_transform(data)
-            torch.save(data_list, self.pre_processed_path)
-        else:
-            data_list = torch.load(self.pre_processed_path)
-
-        test_data_list = data_list[0]
-
-        if self.pre_collate_transform:
-            log.info("pre_collate_transform ...")
-            log.info(self.pre_collate_transform)
-            test_data_list = self.pre_collate_transform(test_data_list)
-
-        self._save_data(test_data_list)
-
-    def _save_data(self, test_data_list):
-        torch.save(self.collate(test_data_list), self.processed_paths[2])
+            self._save_data(data)
 
     def _load_data(self, path):
         self.data, self.slices = torch.load(path)
@@ -253,23 +236,15 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
     pre_filter
     """
 
-    def __init__(self, root, sample_per_epoch=100, radius=2, *args, **kwargs):
-        self._sample_per_epoch = sample_per_epoch
-        self._radius = radius
-        self._grid_sphere_sampling = cT.GridSampling3D(size=radius / 10.0)
+    def __init__(self, root, *args, **kwargs):
+        self._spheres = None
         super().__init__(root, *args, **kwargs)
 
     def __len__(self):
-        if self._sample_per_epoch > 0:
-            return self._sample_per_epoch
-        else:
-            return len(self._test_spheres)
+        return len(self._spheres)
 
     def get(self, idx):
-        if self._sample_per_epoch > 0:
-            return self._get_random()
-        else:
-            return self._test_spheres[idx].clone()
+        return self._spheres[idx].clone()
 
     def process(self):  # We have to include this method, otherwise the parent class skips processing
         super().process()
@@ -277,47 +252,11 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
     def download(self):  # We have to include this method, otherwise the parent class skips download
         super().download()
 
-    def _get_random(self):
-        # Random spheres biased towards getting more low frequency classes
-        chosen_label = np.random.choice(self._labels, p=self._label_counts)
-        valid_centres = self._centres_for_sampling[self._centres_for_sampling[:, 4] == chosen_label]
-        centre_idx = int(random.random() * (valid_centres.shape[0] - 1))
-        centre = valid_centres[centre_idx]
-        area_data = self._datas[centre[3].int()]
-        sphere_sampler = cT.SphereSampling(self._radius, centre[:3], align_origin=False)
-        return sphere_sampler(area_data)
-
     def _save_data(self, test_data_list):
-        torch.save(test_data_list, self.processed_paths[2])
+        torch.save(test_data_list, self.processed_file_names[0])
 
     def _load_data(self, path):
-        self._datas = torch.load(path)
-        if not isinstance(self._datas, list):
-            self._datas = [self._datas]
-        if self._sample_per_epoch > 0:
-            self._centres_for_sampling = []
-            for i, data in enumerate(self._datas):
-                assert not hasattr(
-                    data, cT.SphereSampling.KDTREE_KEY
-                )  # Just to make we don't have some out of date data in there
-                low_res = self._grid_sphere_sampling(data.clone())
-                centres = torch.empty((low_res.pos.shape[0], 5), dtype=torch.float)
-                centres[:, :3] = low_res.pos
-                centres[:, 3] = i
-                centres[:, 4] = low_res.y
-                self._centres_for_sampling.append(centres)
-                tree = KDTree(np.asarray(data.pos), leaf_size=10)
-                setattr(data, cT.SphereSampling.KDTREE_KEY, tree)
-
-            self._centres_for_sampling = torch.cat(self._centres_for_sampling, 0)
-            uni, uni_counts = np.unique(np.asarray(self._centres_for_sampling[:, -1]), return_counts=True)
-            uni_counts = np.sqrt(uni_counts.mean() / uni_counts)
-            self._label_counts = uni_counts / np.sum(uni_counts)
-            self._labels = uni
-        else:
-            grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
-            self._test_spheres = grid_sampler(self._datas)
-            self._test_spheres = [d for d in self._test_spheres if d.origin_id.__len__() > 1]
+        self._spheres = torch.load(path)
 
 class NexploreS3DISFusedForwardDataset(BaseDataset):
 
@@ -338,15 +277,6 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
 
         if dataset_opt.class_weight_method:
             self.add_weights(class_weight_method=dataset_opt.class_weight_method)
-
-        # self.raw_data = self.read_raw_data()
-
-    # def read_raw_data(self):
-    #     xyz, rgb, semantic_labels = read_s3dis_format(
-    #         self.path, "segment", label_out=False, verbose=self.verbose, debug=self.debug
-    #     )
-    #
-    #     return Data(pos=xyz, y=semantic_labels, rgb=rgb)
 
     @property
     def test_data(self):
@@ -393,72 +323,18 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
             output = output.reshape(num_sample, -1, output.shape[-1])  # [B,N,L]
 
         setattr(batch, "_pred", output)
+        softmax = torch.nn.Softmax(dim=1)
         for b in range(num_sample):
             predicted = BaseDataset.get_sample(batch, "_pred", b, conv_type).reshape(-1, output.shape[-1])
             origindid = BaseDataset.get_sample(batch, SaveOriginalPosId.KEY, b, conv_type).cpu().numpy()
             #TODO need to take original pos and interpolate with transformed pos
             # full_prediction = knn_interpolate(predicted, sample_raw_pos[origindid], sample_raw_pos, k=3)
-            labels = predicted.max(1)[1].cpu().numpy()
+            predicted = softmax(predicted)
+            values, labels = predicted.max(1)
+            labels[values < 0.0] = 0 #threshold
+            labels = labels.cpu().numpy()
+
             for index, id in enumerate(origindid):
                 full_res_results[id] = labels[index]
         return full_res_results
-
-class _ForwardS3dis(torch.utils.data.Dataset):
-    """ Dataset to run forward inference on Shapenet kind of data data. Runs on a whole folder.
-    Arguments:
-        path: folder that contains a set of files of a given category
-        category: index of the category to use for forward inference. This value depends on how many categories the model has been trained one.
-        transforms: transforms to be applied to the data
-        include_normals: wether to include normals for the forward inference
-    """
-
-    def __init__(self, path, category: int, transforms=None, include_normals=True):
-        super().__init__()
-        self._category = category
-        self._path = path
-        self._files = sorted(glob.glob(os.path.join(self._path, "*.txt")))
-        self._transforms = transforms
-        self._include_normals = include_normals
-        assert os.path.exists(self._path)
-        if self.__len__() == 0:
-            raise ValueError("Empty folder %s" % path)
-
-    def __len__(self):
-        return len(self._files)
-
-    def _read_file(self, filename):
-        raw = read_txt_array(filename)
-        pos = raw[:, :3]
-        x = raw[:, 3:6]
-        if raw.shape[1] == 7:
-            y = raw[:, 6].type(torch.long)
-        else:
-            y = None
-        return Data(pos=pos, x=x, y=y)
-
-    def get_raw(self, index):
-        """ returns the untransformed data associated with an element
-        """
-        return self._read_file(self._files[index])
-
-    @property
-    def num_features(self):
-        feats = self[0].x
-        if feats is not None:
-            return feats.shape[-1]
-        return 0
-
-    def get_filename(self, index):
-        return os.path.basename(self._files[index])
-
-    def __getitem__(self, index):
-        data = self._read_file(self._files[index])
-        category = torch.ones(data.pos.shape[0], dtype=torch.long) * self._category
-        setattr(data, "category", category)
-        setattr(data, "sampleid", torch.tensor([index]))
-        if not self._include_normals:
-            data.x = None
-        if self._transforms is not None:
-            data = self._transforms(data)
-        return data
 
