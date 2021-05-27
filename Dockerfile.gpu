@@ -47,9 +47,6 @@ COPY . /src/RnD.PointcloudClassification.Points3D/
 # copy entrypoint
 COPY entrypoint.sh /
 
-# copy local configuration into image
-#COPY addon/ /src/RnD.PointcloudClassification.Points3D/
-
 # we need to do this because otherwise loading torch libraries fails
 # due to the binary libraries not being found
 ENV LD_LIBRARY_PATH=/root/miniconda3/lib/python3.8/site-packages/torch/lib

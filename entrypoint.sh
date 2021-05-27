@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # If a config package is given, extract and use it
-if [ -f /config.tar.gz ]; do
+if [ -f /config.tar.gz ]; then
+  echo Applying user configuration data.
   tar -C /src/RnD.PointcloudClassification.Points3D -x -f /config.tar.gz
-done
+fi
 
 echo "Entering torch-points3d environment"
 echo "Command given: $@"
