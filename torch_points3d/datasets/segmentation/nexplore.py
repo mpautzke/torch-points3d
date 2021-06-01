@@ -218,35 +218,6 @@ class NexploreS3DISOriginalFused(Dataset):
     pre_filter
     """
 
-    # form_url = (
-    #     "https://docs.google.com/forms/d/e/1FAIpQLScDimvNMCGhy_rmBA2gHfDu3naktRm6A8BPwAWWDv-Uhm6Shw/viewform?c=0&w=1"
-    # )
-    # download_url = "https://drive.google.com/uc?id=0BweDykwS9vIobkVPN0wzRzFwTDg&export=download"
-    # zip_name = "Stanford3dDataset_v1.2_Version.zip"
-    # path_file = osp.join(DIR, "s3dis.patch")
-    # file_name = "Stanford3dDataset_v1.2"
-
-    train_areas = [
-        # "a40",
-        "dover_flint",
-        "dutch_john",
-        "floral_ave",
-        "handford_2",
-        "houston",
-        "orange_ave_connector",
-        "orange_oregon",
-        # "peach",
-        # "taktkeller",
-        # "tule",
-        # "tule_test"
-    ]
-    test_areas = [
-        "handford_1",
-        "tule",
-        # "tule_test"
-    ]
-
-
     num_classes = S3DIS_NUM_CLASSES
 
     def __init__(
@@ -263,8 +234,13 @@ class NexploreS3DISOriginalFused(Dataset):
         keep_instance=False,
         verbose=False,
         debug=False,
+        train_areas=[],
+        test_areas=[]
     ):
-        assert len(self.test_areas) > 0
+        assert len(test_areas) > 0
+        assert len(train_areas) > 0
+        self.train_areas = list(train_areas)
+        self.test_areas = list(test_areas)
         self.transform = transform
         self.pre_collate_transform = pre_collate_transform
         self.test_area = test_area
@@ -386,6 +362,9 @@ class NexploreS3DISOriginalFused(Dataset):
                         segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug
                     )
 
+                    if self.debug:
+                        pass
+
                     rgb_norm = rgb.float() / 255.0
                     data = Data(pos=xyz, y=semantic_labels, rgb=rgb_norm)
                     #TODO implement better way to select validation segments
@@ -429,7 +408,7 @@ class NexploreS3DISOriginalFused(Dataset):
             grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
             low_res_data_spheres = []
             if self._sample_per_epoch > 0 and self._split == "train":
-                _grid_sphere_sampling = cT.GridSampling3D(size=self._radius / 10.0)
+                _grid_sphere_sampling = cT.GridSampling3D(size=1) #TODO come up with better way to determine this size
                 low_res_data_spheres = _grid_sphere_sampling(copy.deepcopy(train_data_list))[0]
                 low_res_tree = KDTree(np.asarray(low_res_data_spheres.pos), leaf_size=10)
                 setattr(low_res_data_spheres, cT.SphereSampling.KDTREE_KEY, low_res_tree)
@@ -692,10 +671,12 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.train_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=50,
+            sample_per_epoch=100,
             test_area=self.dataset_opt.fold,
-            radius=20,
+            radius=15,
             split="train",
+            train_areas=dataset_opt.train_areas,
+            test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.train_transform,
         )
@@ -704,8 +685,10 @@ class NexploreS3DISFusedDataset(BaseDataset):
             self._data_path,
             sample_per_epoch=-1,
             test_area=self.dataset_opt.fold,
-            radius=20,
+            radius=30,
             split="val",
+            train_areas=dataset_opt.train_areas,
+            test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.val_transform,
         )
@@ -714,8 +697,10 @@ class NexploreS3DISFusedDataset(BaseDataset):
             self._data_path,
             sample_per_epoch=-1,
             test_area=self.dataset_opt.fold,
-            radius=20,
+            radius=30,
             split="test",
+            train_areas=dataset_opt.train_areas,
+            test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.test_transform,
         )
