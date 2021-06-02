@@ -3,7 +3,7 @@ batch_size: 1
 cuda: 1
 weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest]
 enable_cudnn: True
-checkpoint_dir: "C:/Users/mpautzke/Data/models/20_radius_medium"  #"/home/nicolas/deeppointcloud-benchmarks/outputs/2020-02-24/15-02-47"  "{your_path}/outputs/2020-01-28/11-04-13" for example
+checkpoint_dir: "C:/Users/mpautzke/Data/models/20_radius_large_32_batch"  #"/home/nicolas/deeppointcloud-benchmarks/outputs/2020-02-24/15-02-47"  "{your_path}/outputs/2020-01-28/11-04-13" for example
 model_name: "pointnet2_charlesssg" #TOTO
 enable_dropout: False
 process_full_resolution: True

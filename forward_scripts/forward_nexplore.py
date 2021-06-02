@@ -45,7 +45,7 @@ def save(path, postfix, results):
     print(f"Writing {out_file}...")
     path = os.path.join(path, out_file)
     # np.save(path, results)  #These are faster
-    np.savetxt(path, results, fmt=['%.18e', '%.18e', '%.18e', '%i', '%i', '%i', '%i'])
+    np.savetxt(path, results, fmt='%s')
     # res_df = pd.DataFrame(results)
     # res_df.to_csv(path, sep=' ', index=False, header=False)
     output_timer_end = timer()
@@ -71,35 +71,17 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True):
     print("Compiling subsampled points...")
     indices = list(results.keys())
 
-    pos = np.array(raw_data.pos[indices], dtype=np.float64)
-    rgb = np.array(raw_data.rgb[indices], dtype=np.int)
-    values = np.array(list(results.values()), dtype=np.int).reshape((-1, 1))
+    pos = np.array(raw_data.pos[indices], dtype=np.str)
+    rgb = np.array(raw_data.rgb[indices], dtype=np.str)
+    values = np.array(list(results.values()), dtype=np.str).reshape((-1, 1))
 
     subsampled = concatenate(pos, rgb, values)
 
     save(output_path,"subsampled", subsampled)
     del subsampled
 
-    # subsampled = []
-    # sampled_pos = []
-    # sampled_preds = []
-    # for key, value in Ctq(results.items()):
-    #     sampled_pos.append(shifted_raw_data.pos[key].tolist())
-    #     sampled_preds.append(value)
-    #     subsampled.append(raw_data.pos[key].tolist() + raw_data.rgb[key].tolist() + [value])
-    #
-    # save(output_path,"subsampled", subsampled)
-    # del subsampled
-
     if not process_full:
         return
-
-    pos = np.array(shifted_raw_data.pos[indices])
-    rgb = np.array(shifted_raw_data.rgb[indices])
-    values = np.array(list(results.values())).reshape((-1, 1))
-
-    shifted_subsampled = concatenate(pos, rgb, values)
-    save(output_path, "shifted_subsampled", shifted_subsampled)
 
     fknn = FaissKNeighbors(k=5)  # use 1 to get exact or closest.  Use a higher number to remove noisy predictions
     # fknn.fit(np.array(sampled_pos), np.array(sampled_preds))
@@ -110,7 +92,7 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True):
     batches = math.ceil(n / batch_size)
 
     raw_pos = np.array(shifted_raw_data.pos)
-    prediction = np.array([])
+    prediction = np.array([], dtype=np.int)
     for a in Ctq(range(batches)):
         start = a * batch_size
         end = ((a+1) * batch_size)
@@ -120,12 +102,7 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True):
         out = fknn.predict(raw_pos[start:end])
         prediction = np.concatenate((prediction, out))
 
-    # print("Compiling full resolution points...")
-    # full_res = []
-    # for index, val in enumerate(Ctq(raw_data.pos)):
-    #     full_res.append(raw_data.pos[index].tolist() + raw_data.rgb[index].tolist() + [prediction[index]])
-
-    full_res = concatenate(raw_data.pos, raw_data.rgb, prediction.reshape((-1, 1)))
+    full_res = concatenate(raw_data.pos, raw_data.rgb.astype(dtype=np.str), prediction.reshape((-1, 1)).astype(dtype=np.str))
 
     save(output_path, "full", full_res)
 
@@ -161,7 +138,7 @@ def main(cfg):
     train_dataset_cls = get_dataset_class(checkpoint.data_config)
     setattr(checkpoint.data_config, "class", train_dataset_cls.FORWARD_CLASS)
     setattr(checkpoint.data_config.test_transform[0], "lparams", [5000])
-    # setattr(checkpoint.data_config, "first_subsampling", 1)
+    setattr(checkpoint.data_config, "first_subsampling", 0.08)
     setattr(checkpoint.data_config, "dataroot", cfg.input_path)
     setattr(checkpoint.data_config, "dataset_name", cfg.input_filename)
 
