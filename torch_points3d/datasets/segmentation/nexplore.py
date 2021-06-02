@@ -230,6 +230,7 @@ class NexploreS3DISOriginalFused(Dataset):
         transform=None,
         pre_transform=None,
         pre_collate_transform=None,
+        lowres_subsampling = 0.5,
         pre_filter=None,
         keep_instance=False,
         verbose=False,
@@ -239,6 +240,7 @@ class NexploreS3DISOriginalFused(Dataset):
     ):
         assert len(test_areas) > 0
         assert len(train_areas) > 0
+        self.lowres_subsampling = lowres_subsampling
         self.train_areas = list(train_areas)
         self.test_areas = list(test_areas)
         self.transform = transform
@@ -388,15 +390,15 @@ class NexploreS3DISOriginalFused(Dataset):
             #             #TODO we probably need to assign it back to the data_list?
             #             data = self.pre_transform(data)
 
-            train_data_list = {0: []}
-            val_data_list = {0: []}
+            train_data_list = []
+            val_data_list = []
             for data in data_list:
                 validation_set = data.validation_set
                 del data.validation_set
                 if validation_set:
-                    val_data_list[0].append(data)
+                    val_data_list.append(data)
                 else:
-                    train_data_list[0].append(data)
+                    train_data_list.append(data)
 
             if self.pre_collate_transform:
                 log.info("pre_collate_transform ...")
@@ -404,21 +406,18 @@ class NexploreS3DISOriginalFused(Dataset):
                 train_data_list = self.pre_collate_transform(train_data_list)
                 val_data_list = self.pre_collate_transform(val_data_list)
 
-
             grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
-            low_res_data_spheres = []
             if self._sample_per_epoch > 0 and self._split == "train":
-                _grid_sphere_sampling = cT.GridSampling3D(size=1) #TODO come up with better way to determine this size
-                low_res_data_spheres = _grid_sphere_sampling(copy.deepcopy(train_data_list))[0]
-                low_res_tree = KDTree(np.asarray(low_res_data_spheres.pos), leaf_size=10)
-                setattr(low_res_data_spheres, cT.SphereSampling.KDTREE_KEY, low_res_tree)
-                tree = KDTree(np.asarray(train_data_list[0].pos), leaf_size=50)
-                setattr(train_data_list[0], cT.SphereSampling.KDTREE_KEY, tree)
-                train_data_list.append(low_res_data_spheres)
+                _grid_sphere_sampling = cT.GridSampling3D(size=self.lowres_subsampling)
+                low_res_data = _grid_sphere_sampling(copy.deepcopy(train_data_list))
+                low_res_tree = KDTree(np.asarray(low_res_data.pos), leaf_size=10)
+                setattr(low_res_data, cT.SphereSampling.KDTREE_KEY, low_res_tree)
+                tree = KDTree(np.asarray(train_data_list.pos), leaf_size=50)
+                setattr(train_data_list, cT.SphereSampling.KDTREE_KEY, tree)
+                train_data_list = [train_data_list, low_res_data]
             else:
                 train_data_list = grid_sampler(train_data_list)
                 train_data_list = [d for d in train_data_list if len(d.origin_id) > 10]
-
 
             val_data_spheres = grid_sampler(val_data_list)
             val_data_spheres = [d for d in val_data_spheres if len(d.origin_id) > 10]
@@ -673,8 +672,9 @@ class NexploreS3DISFusedDataset(BaseDataset):
             self._data_path,
             sample_per_epoch=100,
             test_area=self.dataset_opt.fold,
-            radius=15,
+            radius=30,
             split="train",
+            lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train_areas,
             test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
@@ -687,6 +687,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
             test_area=self.dataset_opt.fold,
             radius=30,
             split="val",
+            lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train_areas,
             test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
@@ -699,6 +700,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
             test_area=self.dataset_opt.fold,
             radius=30,
             split="test",
+            lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train_areas,
             test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,

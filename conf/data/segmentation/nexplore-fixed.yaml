@@ -7,22 +7,24 @@ data:
     "dover_flint",
     "dutch_john",
     "floral_ave",
-    "handford_2",
-    "handford_1",
+#    "handford_2",
+#    "handford_1",
     "houston",
     "orange_ave_connector",
     "orange_oregon",
     "peach",
 #     "taktkeller",
-     "tule",
+#     "tule",
+#      "tule_test"
   ]
   test_areas: [
 #        "a40"
-#      "tule",
+      "tule",
       "taktkeller",
   ]
   fold: 3 # Not used for nexplore anymore
   first_subsampling: 0.08 # requires regen
+  lowres_subsampling: 1 # requires regen
   use_category: False # Not used for nexplore
   pre_collate_transform: # requires regen
       - transform: PointCloudFusion   # One point cloud per area
@@ -32,7 +34,7 @@ data:
             size: ${data.first_subsampling}
   train_transforms:
     - transform: FixedPoints
-      lparams: [4000]
+      lparams: [5000]
     - transform: RandomNoise
       params:
         sigma: 0.001
@@ -66,7 +68,7 @@ data:
         scale: 0.5
   test_transform:
     - transform: FixedPoints
-      lparams: [4000]
+      lparams: [5000]
     - transform: XYZFeature
       params:
         add_x: False
