@@ -30,7 +30,7 @@ from torch_points3d.datasets.base_dataset import BaseDataset
 DIR = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger(__name__)
 
-S3DIS_NUM_CLASSES = 3
+S3DIS_NUM_CLASSES = 4
 
 INV_OBJECT_LABEL = {
     0: "other",
@@ -236,12 +236,14 @@ class NexploreS3DISOriginalFused(Dataset):
         verbose=False,
         debug=False,
         train_areas=[],
+        val_areas=[],
         test_areas=[]
     ):
         assert len(test_areas) > 0
         assert len(train_areas) > 0
         self.lowres_subsampling = lowres_subsampling
         self.train_areas = list(train_areas)
+        self.val_areas = list(val_areas)
         self.test_areas = list(test_areas)
         self.transform = transform
         self.pre_collate_transform = pre_collate_transform
@@ -309,7 +311,7 @@ class NexploreS3DISOriginalFused(Dataset):
 
     @property
     def raw_val_areas_paths(self):
-        return [os.path.join(self.processed_dir, "val", f"{name}.pt") for name in self.train_areas]
+        return [os.path.join(self.processed_dir, "val", f"{name}.pt") for name in self.val_areas]
 
     @property
     def raw_test_areas_paths(self):
@@ -670,12 +672,13 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.train_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=100,
+            sample_per_epoch=200,
             test_area=self.dataset_opt.fold,
-            radius=30,
+            radius=20,
             split="train",
             lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train_areas,
+            val_areas=dataset_opt.val_areas,
             test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.train_transform,
@@ -685,27 +688,29 @@ class NexploreS3DISFusedDataset(BaseDataset):
             self._data_path,
             sample_per_epoch=-1,
             test_area=self.dataset_opt.fold,
-            radius=30,
+            radius=20,
             split="val",
             lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train_areas,
+            val_areas=dataset_opt.val_areas,
             test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.val_transform,
         )
 
-        self.test_dataset = dataset_cls(
-            self._data_path,
-            sample_per_epoch=-1,
-            test_area=self.dataset_opt.fold,
-            radius=30,
-            split="test",
-            lowres_subsampling=self.dataset_opt.lowres_subsampling,
-            train_areas=dataset_opt.train_areas,
-            test_areas=dataset_opt.test_areas,
-            pre_collate_transform=self.pre_collate_transform,
-            transform=self.test_transform,
-        )
+        # self.test_dataset = dataset_cls(
+        #     self._data_path,
+        #     sample_per_epoch=-1,
+        #     test_area=self.dataset_opt.fold,
+        #     radius=20,
+        #     split="test",
+        #     lowres_subsampling=self.dataset_opt.lowres_subsampling,
+        #     train_areas=dataset_opt.train_areas,
+        #     val_areas=dataset_opt.val_areas,
+        #     test_areas=dataset_opt.test_areas,
+        #     pre_collate_transform=self.pre_collate_transform,
+        #     transform=self.test_transform,
+        # )
 
         if dataset_opt.class_weight_method:
             self.add_weights(class_weight_method=dataset_opt.class_weight_method)
