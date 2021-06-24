@@ -30,13 +30,13 @@ from torch_points3d.datasets.base_dataset import BaseDataset
 DIR = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger(__name__)
 
-S3DIS_NUM_CLASSES = 3
+S3DIS_NUM_CLASSES = 2
 
 INV_OBJECT_LABEL = {
     0: "other",
     1: "road",
-    2: "powerpole",
-    3: "cable"
+    # 2: "powerpole",
+    # 3: "cable"
 }
 
 OBJECT_COLOR = np.asarray(
@@ -81,7 +81,7 @@ def object_name_to_label(object_class):
     return object_label
 
 #TODO segment maybe needed for very large files (100gb+)
-def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debug=False):
+def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debug=False, manual_shift=None):
     """extract data from a room folder"""
     room_type, room_idx = room_name.split("_")
     room_label = ROOM_TYPES[room_type]
@@ -106,7 +106,7 @@ def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debu
         xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
 
         #Shifts to local and quantizes to float32 by default
-        xyz, shift_vector = shift_and_quantize(xyz)
+        xyz, shift_vector = shift_and_quantize(xyz, manual_shift=manual_shift)
 
         try:
             rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
@@ -145,9 +145,9 @@ def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debu
             torch.from_numpy(semantic_labels), #actual label
             torch.from_numpy(instance_labels), #index of instance
             torch.from_numpy(room_label),
+            shift_vector
         )
 
-#GOOD
 def shift_and_quantize(xyz, qtype = np.float32, manual_shift = None):
     if manual_shift is None:
         shift_threshold = 100
@@ -236,12 +236,18 @@ class NexploreS3DISOriginalFused(Dataset):
         verbose=False,
         debug=False,
         train_areas=[],
+        val_areas=[],
         test_areas=[]
     ):
         assert len(test_areas) > 0
         assert len(train_areas) > 0
+        if val_areas is None:
+            val_areas = []
         self.lowres_subsampling = lowres_subsampling
         self.train_areas = list(train_areas)
+        self.val_areas = list(val_areas)
+        if len(self.val_areas) <= 0:
+            self.val_areas = self.train_areas
         self.test_areas = list(test_areas)
         self.transform = transform
         self.pre_collate_transform = pre_collate_transform
@@ -309,7 +315,7 @@ class NexploreS3DISOriginalFused(Dataset):
 
     @property
     def raw_val_areas_paths(self):
-        return [os.path.join(self.processed_dir, "val", f"{name}.pt") for name in self.train_areas]
+        return [os.path.join(self.processed_dir, "val", f"{name}.pt") for name in self.val_areas]
 
     @property
     def raw_test_areas_paths(self):
@@ -344,138 +350,180 @@ class NexploreS3DISOriginalFused(Dataset):
             log.info(f"No data found in {self.raw_dir}")
             log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
 
+
     def process(self):
-        #Check to see if we have any data in processed folder
-        #TODO refactor and seperate train and val so we can generalize the method
+        #TODO IF ELSE is ugly.  All could be refactored
 
-        for area in self.train_areas:
-            if os.path.exists(os.path.join(self.processed_dir,"train", area + ".pt")):
-                continue #skip if already exists
+        if self._split == "train":
+            for area in self.train_areas:
+                if os.path.exists(os.path.join(self.processed_dir, "train", area + ".pt")):
+                    continue  # skip if already exists
 
-            data_list = []
-            for segment_name in os.listdir(osp.join(self.raw_dir, area)):
-                segment_path = osp.join(self.raw_dir, area, segment_name)
-                print(f"Processing {area}, {segment_name}")
-                if os.path.isdir(segment_path):
-                    # area_idx = folders.index(area)
-                    segment_type, segment_idx = segment_name.split("_")
+                train_data_list = []
+                manual_shift = None
+                dirs = os.listdir(osp.join(self.raw_dir, area))
+                dirs.pop() #last segment used for val
 
-                    xyz, rgb, semantic_labels, instance_labels, room_label = read_s3dis_format(
-                        segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug
-                    )
+                for segment_name in dirs:
+                    segment_path = osp.join(self.raw_dir, area, segment_name)
 
-                    if self.debug:
-                        pass
+                    print(f"Processing training data {area}, {segment_name}")
+                    if os.path.isdir(segment_path):
+                        # area_idx = folders.index(area)
+                        segment_type, segment_idx = segment_name.split("_")
 
-                    rgb_norm = rgb.float() / 255.0
-                    data = Data(pos=xyz, y=semantic_labels, rgb=rgb_norm)
-                    #TODO implement better way to select validation segments
-                    if int(segment_idx) == 2:
-                        data.validation_set = True
-                    else:
-                        data.validation_set = False
+                        xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
+                            segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug, manual_shift=manual_shift
+                        )
 
-                    if self.keep_instance:
-                        data.instance_labels = instance_labels
+                        # all segments use same shift
+                        if manual_shift is None:
+                            manual_shift = last_shift_vector
 
-                    if self.pre_filter is not None and not self.pre_filter(data):
-                        continue
+                        if self.debug:
+                            pass
 
-                    data_list.append(data)
+                        rgb_norm = rgb.float() / 255.0
+                        data = Data(pos=xyz, y=semantic_labels, rgb=rgb_norm)
+                        # TODO implement better way to select validation segments
 
-            # for area_datas in data_list:
-            #     # Apply pre_transform
-            #     if self.pre_transform is not None:
-            #         for data in area_datas:
-            #             #TODO we probably need to assign it back to the data_list?
-            #             data = self.pre_transform(data)
+                        if self.keep_instance:
+                            data.instance_labels = instance_labels
 
-            train_data_list = []
-            val_data_list = []
-            for data in data_list:
-                validation_set = data.validation_set
-                del data.validation_set
-                if validation_set:
-                    val_data_list.append(data)
+                        if self.pre_filter is not None and not self.pre_filter(data):
+                            continue
+
+                        train_data_list.append(data)
+
+                if self.pre_collate_transform:
+                    log.info("pre_collate_transform ...")
+                    log.info(self.pre_collate_transform)
+                    train_data_list = self.pre_collate_transform(train_data_list)
+
+                grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
+                if self._sample_per_epoch > 0:
+                    train_data_list = self._gen_low_res(self.lowres_subsampling, train_data_list)
                 else:
-                    train_data_list.append(data)
+                    train_data_list = grid_sampler(train_data_list)
+                    train_data_list = [d for d in train_data_list if len(d.origin_id) > 10]
 
-            if self.pre_collate_transform:
-                log.info("pre_collate_transform ...")
-                log.info(self.pre_collate_transform)
-                train_data_list = self.pre_collate_transform(train_data_list)
-                val_data_list = self.pre_collate_transform(val_data_list)
+                self._save_data(train_data_list, os.path.join(self.processed_dir, "train", area + ".pt"))
 
-            grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
-            if self._sample_per_epoch > 0 and self._split == "train":
-                _grid_sphere_sampling = cT.GridSampling3D(size=self.lowres_subsampling)
-                low_res_data = _grid_sphere_sampling(copy.deepcopy(train_data_list))
-                low_res_tree = KDTree(np.asarray(low_res_data.pos), leaf_size=10)
-                setattr(low_res_data, cT.SphereSampling.KDTREE_KEY, low_res_tree)
-                tree = KDTree(np.asarray(train_data_list.pos), leaf_size=50)
-                setattr(train_data_list, cT.SphereSampling.KDTREE_KEY, tree)
-                train_data_list = [train_data_list, low_res_data]
-            else:
-                train_data_list = grid_sampler(train_data_list)
-                train_data_list = [d for d in train_data_list if len(d.origin_id) > 10]
 
-            val_data_spheres = grid_sampler(val_data_list)
-            val_data_spheres = [d for d in val_data_spheres if len(d.origin_id) > 10]
+        elif self._split == "val":
+            for area in self.val_areas:
+                if os.path.exists(os.path.join(self.processed_dir, "val", area + ".pt")):
+                    continue  # skip if already exists
 
-            self._save_data(train_data_list, os.path.join(self.processed_dir,"train", area + ".pt"))
-            self._save_data(val_data_spheres, os.path.join(self.processed_dir,"val", area + ".pt"))
+                val_data_list = []
+                manual_shift = None
+                dirs = os.listdir(osp.join(self.raw_dir, area))
+                dirs = dirs[-1:] # last segment used for val
 
-        #TEST AREAS
-        for area in self.test_areas:
-            if os.path.exists(os.path.join(self.processed_dir,"test", area + ".pt")):
-                continue #skip if already exists
+                for segment_name in dirs:
+                    segment_path = osp.join(self.raw_dir, area, segment_name)
 
-            data_list = []
-            for segment_name in os.listdir(osp.join(self.raw_dir, area)):
-                print(f"Processing {area}, {segment_name}")
+                    print(f"Processing val data {area}, {segment_name}")
+                    if os.path.isdir(segment_path):
+                        # area_idx = folders.index(area)
+                        segment_type, segment_idx = segment_name.split("_")
 
-                segment_path = osp.join(self.raw_dir, area, segment_name)
-                if os.path.isdir(segment_path):
+                        xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
+                            segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug,
+                            manual_shift=manual_shift
+                        )
 
-                    xyz, rgb, semantic_labels, instance_labels, room_label = read_s3dis_format(
-                        segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug
-                    )
+                        # all segments use same shift
+                        if manual_shift is None:
+                            manual_shift = last_shift_vector
 
-                    rgb_norm = rgb.float() / 255.0
-                    data = Data(pos=xyz, y=semantic_labels, rgb=rgb_norm)
+                        if self.debug:
+                            pass
 
-                    if self.keep_instance:
-                        data.instance_labels = instance_labels
+                        rgb_norm = rgb.float() / 255.0
+                        data = Data(pos=xyz, y=semantic_labels, rgb=rgb_norm)
+                        # TODO implement better way to select validation segments
 
-                    if self.pre_filter is not None and not self.pre_filter(data):
-                        continue
+                        if self.keep_instance:
+                            data.instance_labels = instance_labels
 
-                    data_list.append(data)
+                        if self.pre_filter is not None and not self.pre_filter(data):
+                            continue
 
-            # for area_datas in data_list:
-            #     # Apply pre_transform
-            #     if self.pre_transform is not None:
-            #         for data in area_datas:
-            #             #TODO we probably need to assign it back to the data_list?
-            #             data = self.pre_transform(data)
+                        val_data_list.append(data)
 
-            test_data_list = {0: []}
-            for data in data_list:
-                test_data_list[0].append(data)
+                if self.pre_collate_transform:
+                    log.info("pre_collate_transform ...")
+                    log.info(self.pre_collate_transform)
+                    val_data_list = self.pre_collate_transform(val_data_list)
 
-            if self.pre_collate_transform:
-                log.info("pre_collate_transform ...")
-                log.info(self.pre_collate_transform)
-                test_data_list = self.pre_collate_transform(test_data_list)
+                grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
+                if self._sample_per_epoch > 0:
+                    val_data_list = self._gen_low_res(self.lowres_subsampling, val_data_list)
+                else:
+                    val_data_list = grid_sampler(val_data_list)
+                    val_data_list = [d for d in val_data_list if len(d.origin_id) > 10]
 
-            grid_sampler = cT.GridSphereSampling(20, 20, center=False)
-            test_data_spheres = grid_sampler(test_data_list)
-            test_data_spheres = [d for d in test_data_spheres if len(d.origin_id) > 10]
+                self._save_data(val_data_list, os.path.join(self.processed_dir, "val", area + ".pt"))
 
-            self._save_data(test_data_spheres, os.path.join(self.processed_dir,"test", area + ".pt"))
+        elif self._split == "test":
+            for area in self.test_areas:
+                if os.path.exists(os.path.join(self.processed_dir, "test", area + ".pt")):
+                    continue  # skip if already exists
+
+                test_data_list = []
+                manual_shift = None
+                dirs = os.listdir(osp.join(self.raw_dir, area))
+                for segment_name in dirs:
+                    print(f"Processing test data {area}, {segment_name}")
+
+                    segment_path = osp.join(self.raw_dir, area, segment_name)
+                    if os.path.isdir(segment_path):
+
+                        xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
+                            segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug,
+                            manual_shift=manual_shift
+                        )
+
+                        if manual_shift is None:
+                            manual_shift = last_shift_vector
+
+                        rgb_norm = rgb.float() / 255.0
+                        data = Data(pos=xyz, y=semantic_labels, rgb=rgb_norm)
+
+                        if self.keep_instance:
+                            data.instance_labels = instance_labels
+
+                        if self.pre_filter is not None and not self.pre_filter(data):
+                            continue
+
+                        test_data_list.append(data)
+
+                if self.pre_collate_transform:
+                    log.info("pre_collate_transform ...")
+                    log.info(self.pre_collate_transform)
+                    test_data_list = self.pre_collate_transform(test_data_list)
+
+                grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
+                if self._sample_per_epoch > 0:
+                    test_data_list = self._gen_low_res(self.lowres_subsampling, test_data_list)
+                else:
+                    test_data_list = grid_sampler(test_data_list)
+                    test_data_list = [d for d in test_data_list if len(d.origin_id) > 10]
+
+                self._save_data(test_data_list, os.path.join(self.processed_dir, "test", area + ".pt"))
 
     def _load_data(self, path):
         self.data, self.slices = torch.load(path)
+
+    def _gen_low_res(self, resolution, data_list):
+        _grid_sphere_sampling = cT.GridSampling3D(size=resolution)
+        low_res_data = _grid_sphere_sampling(copy.deepcopy(data_list))
+        low_res_tree = KDTree(np.asarray(low_res_data.pos), leaf_size=10)
+        setattr(low_res_data, cT.SphereSampling.KDTREE_KEY, low_res_tree)
+        tree = KDTree(np.asarray(data_list.pos), leaf_size=50)
+        setattr(data_list, cT.SphereSampling.KDTREE_KEY, tree)
+        return [data_list, low_res_data]
 
 
 class NexploreS3DISSphere(NexploreS3DISOriginalFused):
@@ -670,12 +718,13 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.train_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=100,
+            sample_per_epoch=500,
             test_area=self.dataset_opt.fold,
-            radius=30,
+            radius=20,
             split="train",
             lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train_areas,
+            val_areas=dataset_opt.val_areas,
             test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.train_transform,
@@ -683,12 +732,13 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.val_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=-1,
+            sample_per_epoch=100,
             test_area=self.dataset_opt.fold,
-            radius=30,
+            radius=20,
             split="val",
             lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train_areas,
+            val_areas=dataset_opt.val_areas,
             test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.val_transform,
@@ -696,12 +746,13 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         self.test_dataset = dataset_cls(
             self._data_path,
-            sample_per_epoch=-1,
+            sample_per_epoch=100,
             test_area=self.dataset_opt.fold,
-            radius=30,
+            radius=20,
             split="test",
             lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train_areas,
+            val_areas=dataset_opt.val_areas,
             test_areas=dataset_opt.test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.test_transform,
