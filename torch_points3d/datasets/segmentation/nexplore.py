@@ -23,7 +23,7 @@ import pickle
 import gdown
 import shutil
 import os
-import threading
+import multiprocessing
 from queue import Queue
 
 from torch_points3d.datasets.samplers import BalancedRandomSampler
@@ -426,7 +426,7 @@ class NexploreS3DISOriginalFused(Dataset):
                 if len(QUEUE) == 0 or NCPU >= NPROC:
                     break # exit if no more items to queue or if all queue slots are full
                 area = QUEUE.pop(0)
-                THREADS[NCPU] = threading.Thread(target=self.process_train,args=(area,))
+                THREADS[NCPU] = multiprocessing.Process(target=self.process_train,args=(area,))
                 log.info("Queueing new job '%s' in thread %d" % (area, NCPU))
 
             log.info("threading: queued %d jobs with %d jobs remaining" % (NCPU+1, len(QUEUE)))
@@ -445,7 +445,7 @@ class NexploreS3DISOriginalFused(Dataset):
                         # try to queue another thread, or else continue
                         if len(QUEUE) > 0:
                             area = QUEUE.pop(0)
-                            THREADS[t] = threading.Thread(target=self.process_train,args=(area,))
+                            THREADS[t] = multiprocessing.Process(target=self.process_train,args=(area,))
                             log.info("Queueing new job '%s' in thread %d" % (area, t))
                             THREADS[t].start()
                         else:
