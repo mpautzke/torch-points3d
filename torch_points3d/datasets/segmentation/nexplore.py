@@ -21,6 +21,8 @@ import pandas as pd
 import pickle
 import gdown
 import shutil
+import os
+import threading
 from queue import Queue
 
 from torch_points3d.datasets.samplers import BalancedRandomSampler
@@ -350,65 +352,107 @@ class NexploreS3DISOriginalFused(Dataset):
             log.info(f"No data found in {self.raw_dir}")
             log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
 
+    def process_train(self,area):
+        log.info("Starting train processing on %s"%area)
+        if os.path.exists(os.path.join(self.processed_dir, "train", area + ".pt")):
+            return  # skip if already exists
+
+        train_data_list = []
+        manual_shift = None
+        dirs = os.listdir(osp.join(self.raw_dir, area))
+        dirs.pop() #last segment used for val
+
+        for segment_name in dirs:
+            segment_path = osp.join(self.raw_dir, area, segment_name)
+
+            log.info(f"Processing training data {area}, {segment_name}")
+            if os.path.isdir(segment_path):
+                # area_idx = folders.index(area)
+                segment_type, segment_idx = segment_name.split("_")
+
+                xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
+                    segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug, manual_shift=manual_shift
+                )
+
+                # all segments use same shift
+                if manual_shift is None:
+                    manual_shift = last_shift_vector
+
+                if self.debug:
+                    pass
+
+                rgb_norm = rgb.float() / 255.0
+                data = Data(pos=xyz, y=semantic_labels, rgb=rgb_norm)
+                # TODO implement better way to select validation segments
+
+                if self.keep_instance:
+                    data.instance_labels = instance_labels
+
+                if self.pre_filter is not None and not self.pre_filter(data):
+                    continue
+
+                train_data_list.append(data)
+
+        if self.pre_collate_transform:
+            log.info("Starting pre_collate_transform ...")
+            log.info(self.pre_collate_transform)
+            train_data_list = self.pre_collate_transform(train_data_list)
+
+        grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
+        if self._sample_per_epoch > 0:
+            train_data_list = self._gen_low_res(self.lowres_subsampling, train_data_list)
+        else:
+            train_data_list = grid_sampler(train_data_list)
+            train_data_list = [d for d in train_data_list if len(d.origin_id) > 10]
+
+        self._save_data(train_data_list, os.path.join(self.processed_dir, "train", area + ".pt"))
 
     def process(self):
         #TODO IF ELSE is ugly.  All could be refactored
 
         if self._split == "train":
-            for area in self.train_areas:
-                if os.path.exists(os.path.join(self.processed_dir, "train", area + ".pt")):
-                    continue  # skip if already exists
 
-                train_data_list = []
-                manual_shift = None
-                dirs = os.listdir(osp.join(self.raw_dir, area))
-                dirs.pop() #last segment used for val
+            QUEUE = [x for x in self.train_areas]
+            NPROC = os.cpu_count()
 
-                for segment_name in dirs:
-                    segment_path = osp.join(self.raw_dir, area, segment_name)
+            THREADS = [None]*NPROC
+            NCPU = 0
 
-                    print(f"Processing training data {area}, {segment_name}")
-                    if os.path.isdir(segment_path):
-                        # area_idx = folders.index(area)
-                        segment_type, segment_idx = segment_name.split("_")
+            # Kick off processing threads
+            while True:
+                if len(QUEUE) == 0 or NCPU >= NPROC:
+                    break # exit if no more items to queue or if all queue slots are full
+                area = QUEUE.pop(0)
+                THREADS[NCPU] = threading.Thread(target=self.process_train,args=(area,))
+                log.info("Queueing new job '%s' in thread %d" % (area, NCPU))
 
-                        xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
-                            segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug, manual_shift=manual_shift
-                        )
+            log.info("threading: queued %d jobs with %d jobs remaining" % (NCPU+1, len(QUEUE)))
 
-                        # all segments use same shift
-                        if manual_shift is None:
-                            manual_shift = last_shift_vector
-
-                        if self.debug:
-                            pass
-
-                        rgb_norm = rgb.float() / 255.0
-                        data = Data(pos=xyz, y=semantic_labels, rgb=rgb_norm)
-                        # TODO implement better way to select validation segments
-
-                        if self.keep_instance:
-                            data.instance_labels = instance_labels
-
-                        if self.pre_filter is not None and not self.pre_filter(data):
+            # Start threads now
+            for t in THREADS:
+                if t is not None:
+                    t.start()
+            
+            # Start waiting for threads and queueing new items if necessary
+            while True:
+                for t in range(len(THREADS)):
+                    if THREADS[t] is None: continue # skip empty threads
+                    if not THREADS[t].is_alive(): 
+                        # try to queue another thread, or else continue
+                        if len(QUEUE) > 0:
+                            area = QUEUE.pop(0)
+                            THREADS[t] = threading.Thread(target=self.process_train,args=(area,))
+                            log.info("Queueing new job '%s' in thread %d" % (area, t))
+                            THREADS[t].start()
+                        else:
+                            THREADS[t] == None
                             continue
-
-                        train_data_list.append(data)
-
-                if self.pre_collate_transform:
-                    log.info("pre_collate_transform ...")
-                    log.info(self.pre_collate_transform)
-                    train_data_list = self.pre_collate_transform(train_data_list)
-
-                grid_sampler = cT.GridSphereSampling(self._radius, self._radius, center=False)
-                if self._sample_per_epoch > 0:
-                    train_data_list = self._gen_low_res(self.lowres_subsampling, train_data_list)
-                else:
-                    train_data_list = grid_sampler(train_data_list)
-                    train_data_list = [d for d in train_data_list if len(d.origin_id) > 10]
-
-                self._save_data(train_data_list, os.path.join(self.processed_dir, "train", area + ".pt"))
-
+                
+                # if all threads have died, then exit
+                deadThreadCount = len([x for x in THREADS if x is None])
+                if deadThreadCount >= NPROC:
+                    log.info("No threads left and no more queue items. Exiting threader.")
+                    break
 
         elif self._split == "val":
             for area in self.val_areas:
