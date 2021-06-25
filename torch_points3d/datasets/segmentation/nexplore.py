@@ -425,6 +425,7 @@ class NexploreS3DISOriginalFused(Dataset):
                 area = QUEUE.pop(0)
                 THREADS[NCPU] = threading.Thread(target=self.process_train,args=(area,))
                 log.info("Queueing new job '%s' in thread %d" % (area, NCPU))
+                NCPU += 1
 
             log.info("threading: queued %d jobs with %d jobs remaining" % (NCPU+1, len(QUEUE)))
 
