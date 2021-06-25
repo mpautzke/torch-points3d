@@ -19,6 +19,11 @@ print (_LOGO)
 
 import argparse
 
+parser = argparse.ArgumentParser(description="Run training")
+parser.add_argument("--no-training",action="store_true",dest="no_train",help="Do not perform training (only perform preprocessing)")
+
+args = parser.parse_args()
+
 print("Imports...")
 print("  > hydra",flush=True)
 import hydra
@@ -46,8 +51,4 @@ def main(cfg):
     hydra._internal.hydra.GlobalHydra.get_state().clear()
     return 0
 
-parser = argparse.ArgumentParser(description="Run training")
-parser.add_argument("--no-training",action="store_true",dest="no_train",help="Do not perform training (only perform preprocessing)")
-
-args = parser.parse_args()
 main()

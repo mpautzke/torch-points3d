@@ -576,12 +576,12 @@ class NexploreS3DISOriginalFused(Dataset):
             if t is not None:
                 t.start()
         time.sleep(1) # wait a moment to make sure threads have started
-        
+
         # Start waiting for threads and queueing new items if necessary
         while True:
             for t in range(len(THREADS)):
                 if THREADS[t] is None: continue # skip empty threads
-                if not THREADS[t].is_alive(): 
+                if not THREADS[t].is_alive():
                     # try to queue another thread, or else continue
                     if len(QUEUE) > 0:
                         area = QUEUE.pop(0)
@@ -714,7 +714,6 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
             else:
                 data = self._load_spheres(self.split_areas_paths[self.file_index])
                 self.spheres = data
-
 
         if self._sample_per_epoch > 0:
             return self._get_random()
