@@ -17,13 +17,6 @@ _LOGO = """
 
 print (_LOGO)
 
-import argparse
-
-parser = argparse.ArgumentParser(description="Run training")
-parser.add_argument("--no-training",action="store_true",dest="no_train",help="Do not perform training (only perform preprocessing)")
-
-args = parser.parse_args()
-
 print("Imports...")
 print("  > hydra",flush=True)
 import hydra
@@ -41,7 +34,7 @@ def main(cfg):
 
     print("Starting training preprocessing")
     trainer = Trainer(cfg)
-    if not args.no_train:
+    if not cfg.no_train:
         print("Starting training process NOW")
         trainer.train()
     else:
