@@ -585,7 +585,7 @@ class NexploreS3DISOriginalFused(Dataset):
                     # try to queue another thread, or else continue
                     if len(QUEUE) > 0:
                         area = QUEUE.pop(0)
-                        THREADS[t] = multiprocessing.Process(target=self.process_train,args=(area,))
+                        THREADS[t] = multiprocessing.Process(target=this_func,args=(area,))
                         log.info("Queueing new job '%s:%s' in thread %d" % (self._split, area, t))
                         THREADS[t].start()
                     else:
