@@ -417,16 +417,16 @@ class NexploreS3DISOriginalFused(Dataset):
             NPROC = os.cpu_count()
 
             THREADS = [None]*NPROC
-            NCPU = 0
+            NCPU = -1
 
             # Kick off processing threads
             while True:
+                NCPU += 1
                 if len(QUEUE) == 0 or NCPU >= NPROC:
                     break # exit if no more items to queue or if all queue slots are full
                 area = QUEUE.pop(0)
                 THREADS[NCPU] = threading.Thread(target=self.process_train,args=(area,))
                 log.info("Queueing new job '%s' in thread %d" % (area, NCPU))
-                NCPU += 1
 
             log.info("threading: queued %d jobs with %d jobs remaining" % (NCPU+1, len(QUEUE)))
 
@@ -448,6 +448,7 @@ class NexploreS3DISOriginalFused(Dataset):
                             log.info("Queueing new job '%s' in thread %d" % (area, t))
                             THREADS[t].start()
                         else:
+                            print("thread %d is done and no more jobs, closing."%t)
                             THREADS[t] == None
                             continue
 
