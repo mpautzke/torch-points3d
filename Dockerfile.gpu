@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 #use local apt proxy
 #RUN echo 'Acquire::http { Proxy "http://192.168.1.105:3142"; };' >> /etc/apt/apt.conf.d/01proxy
 
-ENV TORCH_CUDA_ARCH_LIST=7.5
+ENV TORCH_CUDA_ARCH_LIST=7.0
 
 # Install Debian packages
 RUN apt -y update && apt -y upgrade
