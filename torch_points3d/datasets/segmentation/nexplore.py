@@ -4,6 +4,7 @@ import os.path as osp
 from itertools import repeat, product
 import numpy as np
 import h5py
+import time
 import torch
 import random
 import glob
@@ -433,6 +434,7 @@ class NexploreS3DISOriginalFused(Dataset):
             for t in THREADS:
                 if t is not None:
                     t.start()
+            time.sleep(1) # wait a moment to make sure threads have started
             
             # Start waiting for threads and queueing new items if necessary
             while True:
@@ -448,12 +450,14 @@ class NexploreS3DISOriginalFused(Dataset):
                         else:
                             THREADS[t] == None
                             continue
-                
+
                 # if all threads have died, then exit
                 deadThreadCount = len([x for x in THREADS if x is None])
                 if deadThreadCount >= NPROC:
                     log.info("No threads left and no more queue items. Exiting threader.")
                     break
+
+                time.sleep(1) # check threads once per second
 
         elif self._split == "val":
             for area in self.val_areas:
