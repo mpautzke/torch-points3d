@@ -371,14 +371,17 @@ class NexploreS3DISOriginalFused(Dataset):
         for segment_name in dirs:
             segment_path = osp.join(self.raw_dir, area, segment_name)
 
-            log.info(f"Processing training data {area}, {segment_name}")
+            log.info(f"Read train data {area}, {segment_name}")
             if os.path.isdir(segment_path):
                 # area_idx = folders.index(area)
                 segment_type, segment_idx = segment_name.split("_")
 
+                s3_st = datetime.datetime.utcnow()
                 xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug, manual_shift=manual_shift
                 )
+                s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
+                log.info("s3dis train read for %s took %.1f seconds"%(area,s3_tt)))
 
                 # all segments use same shift
                 if manual_shift is None:
@@ -432,15 +435,18 @@ class NexploreS3DISOriginalFused(Dataset):
         for segment_name in dirs:
             segment_path = osp.join(self.raw_dir, area, segment_name)
 
-            print(f"Processing val data {area}, {segment_name}")
+            log.info(f"Read val data {area}, {segment_name}")
             if os.path.isdir(segment_path):
                 # area_idx = folders.index(area)
                 segment_type, segment_idx = segment_name.split("_")
 
+                s3_st = datetime.datetime.utcnow()
                 xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug,
                     manual_shift=manual_shift
                 )
+                s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
+                log.info("s3dis val read for %s took %.1f seconds"%(area,s3_tt)))
 
                 # all segments use same shift
                 if manual_shift is None:
@@ -490,15 +496,18 @@ class NexploreS3DISOriginalFused(Dataset):
         manual_shift = None
         dirs = os.listdir(osp.join(self.raw_dir, area))
         for segment_name in dirs:
-            print(f"Processing test data {area}, {segment_name}")
+            log.info(f"Read test data {area}, {segment_name}")
 
             segment_path = osp.join(self.raw_dir, area, segment_name)
             if os.path.isdir(segment_path):
 
+                s3_st = datetime.datetime.utcnow()
                 xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug,
                     manual_shift=manual_shift
                 )
+                s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
+                log.info("s3dis test read for %s took %.1f seconds"%(area,s3_tt)))
 
                 if manual_shift is None:
                     manual_shift = last_shift_vector
