@@ -356,6 +356,7 @@ class NexploreS3DISOriginalFused(Dataset):
     def process_train(self,area):
         log.info("Starting train processing on %s"%area)
         if os.path.exists(os.path.join(self.processed_dir, "train", area + ".pt")):
+            log.info("Preprocessing for %s already exists. Skipping."%area)
             return  # skip if already exists
 
         train_data_list = []
@@ -449,7 +450,7 @@ class NexploreS3DISOriginalFused(Dataset):
                             THREADS[t].start()
                         else:
                             print("thread %d is done and no more jobs, closing."%t)
-                            THREADS[t] == None
+                            THREADS[t] = None
                             continue
 
                 # if all threads have died, then exit
