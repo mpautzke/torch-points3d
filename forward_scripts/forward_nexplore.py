@@ -136,6 +136,7 @@ def main(cfg):
     #setattr(checkpoint.data_config.val_tranform[2], "feat_names", "pos_z")
 
     train_dataset_cls = get_dataset_class(checkpoint.data_config)
+    # setattr(checkpoint.data_config, "class", "forward.nexplore.NexploreS3DISFusedForwardDataset")
     setattr(checkpoint.data_config, "class", train_dataset_cls.FORWARD_CLASS)
     setattr(checkpoint.data_config.test_transform[0], "lparams", [5000])
     setattr(checkpoint.data_config, "first_subsampling", 0.08)
@@ -151,7 +152,7 @@ def main(cfg):
         for key, value in cfg.dataset_config.items():
             checkpoint.dataset_properties.update(key, value)
 
-    # Create dataset and mdoel
+    # Create dataset and model
     model = checkpoint.create_model(checkpoint.dataset_properties, weight_name=cfg.weight_name)
     log.info(model)
     log.info("Model size = %i", sum(param.numel() for param in model.parameters() if param.requires_grad))

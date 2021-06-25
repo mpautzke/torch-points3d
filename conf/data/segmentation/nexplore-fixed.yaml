@@ -7,21 +7,40 @@ data:
     "dover_flint",
     "dutch_john",
     "floral_ave",
-#    "handford_2",
-#    "handford_1",
+    "handford_2",
+    "handford_1",
     "houston",
     "orange_ave_connector",
     "orange_oregon",
-    "peach",
-#     "taktkeller",
+    "peach"
+    # "taktkeller",
 #     "tule",
-#      "tule_test"
+#     "tule_test"
   ]
   test_areas: [
-#        "a40"
-      "tule",
-      "taktkeller",
+    # "a40"
+    "tule",
+    "taktkeller"
   ]
+
+#  train_areas: [
+#    "hsr_1_1_1",
+#    "hsr_1_1_2",
+#    "hsr_1_1_3",
+#    "hsr_1_1_4",
+#    "hsr_1_2_1",
+#    "hsr_1_2_3",
+#    "hsr_1_2_4",
+#    "hsr_1_4_1",
+#    "hsr_1_4_2"
+#  ]
+#  val_areas: [
+#    "hsr_1_1_1",
+##    "hsr_1_2_3"
+#  ]
+#  test_areas: [
+#    "hsr_1_4_1_test",
+#  ]
   fold: 3 # Not used for nexplore anymore
   first_subsampling: 0.08 # requires regen
   lowres_subsampling: 1 # requires regen
