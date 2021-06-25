@@ -10,6 +10,7 @@ process_full_resolution: True
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
 input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/taktkeller/segment_2"
 input_filename: "segment_2.txt"
+confidence_threshold: 0.0 #all under this confidence are changed to 0
 
 # Dataset specific
 defaults:
