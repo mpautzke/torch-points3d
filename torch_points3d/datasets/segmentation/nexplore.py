@@ -381,7 +381,7 @@ class NexploreS3DISOriginalFused(Dataset):
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug, manual_shift=manual_shift
                 )
                 s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
-                log.info("s3dis train read for %s took %.1f seconds"%(area,s3_tt)))
+                log.info("s3dis train read for %s took %.1f seconds"%(area,s3_tt))
 
                 # all segments use same shift
                 if manual_shift is None:
@@ -446,7 +446,7 @@ class NexploreS3DISOriginalFused(Dataset):
                     manual_shift=manual_shift
                 )
                 s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
-                log.info("s3dis val read for %s took %.1f seconds"%(area,s3_tt)))
+                log.info("s3dis val read for %s took %.1f seconds"%(area,s3_tt))
 
                 # all segments use same shift
                 if manual_shift is None:
@@ -507,7 +507,7 @@ class NexploreS3DISOriginalFused(Dataset):
                     manual_shift=manual_shift
                 )
                 s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
-                log.info("s3dis test read for %s took %.1f seconds"%(area,s3_tt)))
+                log.info("s3dis test read for %s took %.1f seconds"%(area,s3_tt))
 
                 if manual_shift is None:
                     manual_shift = last_shift_vector
