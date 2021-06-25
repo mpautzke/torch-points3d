@@ -28,7 +28,7 @@ from torch_points3d.trainer import Trainer
 print("  > torch_points3d.trainer",flush=True)
 
 @hydra.main(config_path="conf/config.yaml")
-def main(cfg,args):
+def main(cfg):
 
     OmegaConf.set_struct(cfg, False)  # This allows getattr and hasattr methods to function correctly
     if cfg.pretty_print:
@@ -46,9 +46,8 @@ def main(cfg,args):
     hydra._internal.hydra.GlobalHydra.get_state().clear()
     return 0
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run training")
-    parser.add_argument("--no-training",action="store_true",dest="no_train",help="Do not perform training (only perform preprocessing)")
+parser = argparse.ArgumentParser(description="Run training")
+parser.add_argument("--no-training",action="store_true",dest="no_train",help="Do not perform training (only perform preprocessing)")
 
-    args = parser.parse_args()
-    main(args)
+args = parser.parse_args()
+main()
