@@ -2,46 +2,44 @@ data:
   task: segmentation
   class: nexplore.NexploreS3DISFusedDataset
   dataroot: C:\Users\mpautzke\Data\points3d
-  train_areas: [
-    "a40",
-    "dover_flint",
-    "dutch_john",
-    "floral_ave",
-    "handford_2",
-    "handford_1",
-    "houston",
-    "orange_ave_connector",
-    "orange_oregon",
-    "peach"
-    # "taktkeller",
-#     "tule",
-#     "tule_test"
-  ]
-  test_areas: [
-    # "a40"
-    "tule",
-    "taktkeller"
-  ]
-
-#  train_areas: [
-#    "hsr_1_1_1",
-#    "hsr_1_1_2",
-#    "hsr_1_1_3",
-#    "hsr_1_1_4",
-#    "hsr_1_2_1",
-#    "hsr_1_2_3",
-#    "hsr_1_2_4",
-#    "hsr_1_4_1",
-#    "hsr_1_4_2"
-#  ]
-#  val_areas: [
-#    "hsr_1_1_1",
-##    "hsr_1_2_3"
-#  ]
-#  test_areas: [
-#    "hsr_1_4_1_test",
-#  ]
   fold: 3 # Not used for nexplore anymore
+  train:
+    samples_per_epoch: 500
+    radius: 20
+    areas: [
+        "a40",
+        "dover_flint",
+        "dutch_john",
+        "floral_ave",
+        "handford_2",
+        "handford_1",
+        "houston",
+        "orange_ave_connector",
+        "orange_oregon",
+        "peach"
+    ]
+  val:
+    samples_per_epoch: 100
+    radius: 20
+    areas: [
+        "a40",
+        "dover_flint",
+        "dutch_john",
+        "floral_ave",
+        "handford_2",
+        "handford_1",
+        "houston",
+        "orange_ave_connector",
+        "orange_oregon",
+        "peach"
+    ]
+  test:
+    samples_per_epoch: 100
+    radius: 20
+    areas: [
+        "tule",
+        "taktkeller"
+    ]
   first_subsampling: 0.08 # requires regen
   lowres_subsampling: 1 # requires regen
   use_category: False # Not used for nexplore

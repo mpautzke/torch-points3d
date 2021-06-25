@@ -96,7 +96,7 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True):
     for a in Ctq(range(batches)):
         start = a * batch_size
         end = ((a+1) * batch_size)
-        if (end > n):
+        if end > n:
             end = n
 
         out = fknn.predict(raw_pos[start:end])
