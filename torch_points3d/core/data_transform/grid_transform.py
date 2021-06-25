@@ -167,7 +167,7 @@ class SaveOriginalPosId:
 
 
 class ElasticDistortion:
-    """Apply elastic distortion on sparse coordinate space. First projects the position onto a 
+    """Apply elastic distortion on sparse coordinate space. First projects the position onto a
     voxel grid and then apply the distortion to the voxel grid.
 
     Parameters

@@ -209,7 +209,7 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
 
 
 class NexploreS3DISSphere(NexploreS3DISOriginalFused):
-    """ Small variation of S3DISOriginalFused that allows random sampling of spheres 
+    """ Small variation of S3DISOriginalFused that allows random sampling of spheres
     within an Area during training and validation. Spheres have a radius of 2m. If sample_per_epoch is not specified, spheres
     are taken on a 2m grid.
 

@@ -195,8 +195,8 @@ def to_ply(pos, label, file):
 
 #Changed from InMemoryDataset to Dataset
 class NexploreS3DISOriginalFused(Dataset):
-    """ Original S3DIS dataset. Each area is loaded individually and can be processed using a pre_collate transform. 
-    This transform can be used for example to fuse the area into a single space and split it into 
+    """ Original S3DIS dataset. Each area is loaded individually and can be processed using a pre_collate transform.
+    This transform can be used for example to fuse the area into a single space and split it into
     spheres or smaller regions. If no fusion is applied, each element in the dataset is a single room by default.
 
     http://buildingparser.stanford.edu/dataset.html
@@ -527,7 +527,7 @@ class NexploreS3DISOriginalFused(Dataset):
 
 
 class NexploreS3DISSphere(NexploreS3DISOriginalFused):
-    """ Small variation of S3DISOriginalFused that allows random sampling of spheres 
+    """ Small variation of S3DISOriginalFused that allows random sampling of spheres
     within an Area during training and validation. Spheres have a radius of 2m. If sample_per_epoch is not specified, spheres
     are taken on a 2m grid.
 
