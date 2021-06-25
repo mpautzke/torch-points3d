@@ -3,8 +3,8 @@
 Getting Started
 ================
 
-You're reading this because the API wasn't cracking it and you would like to extend the framework for your own task or use 
-some of the deeper layers of our codebase. This set of pages will take you from setting up the code for local development 
+You're reading this because the API wasn't cracking it and you would like to extend the framework for your own task or use
+some of the deeper layers of our codebase. This set of pages will take you from setting up the code for local development
 all the way to adding a new task or a new dataset to the framework.
 For using Torch Points3D as a library please refer to :ref:`this section<index:Install with pip>`.
 
@@ -143,7 +143,7 @@ The `config <https://github.com/nicolas-chaulet/torch-points3d/blob/master/conf/
    :language: yaml
    :lines: 87-122
 
-Once the training is complete, you can access the model checkpoint as well as any visualisation and graphs that you may have generated in the ``outputs/<date>/<time>`` folder where date and time correspond to the time where you launched the training. 
+Once the training is complete, you can access the model checkpoint as well as any visualisation and graphs that you may have generated in the ``outputs/<date>/<time>`` folder where date and time correspond to the time where you launched the training.
 
 Visualise your results
 ------------------------
@@ -151,7 +151,7 @@ Visualise your results
 We provide a `notebook <notebooks/dashboard.ipynb>`_ based on `pyvista <https://docs.pyvista.org/>`_ and `panel <https://panel.holoviz.org/>`_ that allows you to explore your past experiments visually. When using jupyter lab you will have to install an extension:
 
 .. code-block:: bash
-    
+
     jupyter labextension install @pyviz/jupyterlab_pyviz
 
 Once this is done you can launch jupyter lab from the root directory and run through the notebook. You should see a dashboard starting that looks like the following:
@@ -177,7 +177,7 @@ scalable and also ensure that components could be reused. Below is the overall s
    ├── forward_scripts           # Script that runs a forward pass on possibly non annotated data
    ├── outputs                   # All outputs from your runs sorted by date
    ├── scripts                   # Some scripts to help manage the project
-   ├── torch_points3d                       
+   ├── torch_points3d
    │   ├── core                  # Core components
    │   ├── datasets              # All code related to datasets
    │   ├── metrics               # All metrics and trackers
@@ -190,8 +190,8 @@ scalable and also ensure that components could be reused. Below is the overall s
 
 .. note::
    As a general philosophy we have split datasets and models by task. For example, datasets has three subfolders:
-   
-   - segmentation 
+
+   - segmentation
    - classification
    - registration
 

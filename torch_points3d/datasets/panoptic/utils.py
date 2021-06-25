@@ -7,7 +7,7 @@ def set_extra_labels(data, instance_classes, num_max_objects):
     - center_label: [64, 3] on centre per instance
     - instance_labels: [num_points]
     - vote_label: [num_points, 3] displacmenet between each point and the center.
-    - instance_mask: [num_points] boolean mask 
+    - instance_mask: [num_points] boolean mask
     """
     # Initaliase variables
     num_points = data.pos.shape[0]
