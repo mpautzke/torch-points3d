@@ -52,7 +52,9 @@ def save(path, postfix, results):
     print(f"{out_file} elapsed time: {round(output_timer_end - output_timer_start, 2)} seconds")
 
 
-def run(model: BaseModel, dataset, device, output_path, process_full=True, confidence_threshold=0.0):
+def run(model: BaseModel, dataset, device, output_path, confidence_threshold=0.0, include_labels = True):
+    processing_start_end = timer()
+
     loaders = dataset.test_dataloaders
     shifted_raw_data = dataset.test_dataset[0].shifted_test_data
     raw_data = dataset.test_dataset[0].raw_test_data
@@ -68,42 +70,42 @@ def run(model: BaseModel, dataset, device, output_path, process_full=True, confi
                 for key, value in t_results.items():
                     results[key] = value
 
-    print("Compiling first subsampled points...")
+    processing_timer_end = timer()
 
-    subsampled = []
-    sampled_pos = []
-    sampled_preds = []
-    sampled_pos_forKnn = []
-    sampled_rgb_forKnn = []
-    sampled_y_forKnn = []
+    print(f"Run Processing Time 1: {round(processing_timer_end - processing_start_end, 2)} seconds")
+
+    all_points = np.where(shifted_raw_data.y != None)
+    sampled_points = np.array(list(results.keys()))
+    remainder_index = np.delete(all_points, sampled_points)
+
     AccuracyMatrix = np.zeros((3, 3), dtype=np.int32)
 
+    results2 = list(results.items())
+    npresults = np.array(results2)
+    sampled_pos = raw_data.pos[np.array(sampled_points)]
+    sampled_pos = sampled_pos.astype(np.float64)
+    sampled_preds = npresults[:, 1]
+    sampled_preds2 = sampled_preds.reshape((sampled_preds.shape[0], 1))
+    subsampled = np.concatenate((sampled_pos, raw_data.rgb[np.array(sampled_points)], sampled_preds2), axis = 1)
+    #subsampled = raw_data.pos[keyOriginal].tolist() + raw_data.rgb[keyOriginal].tolist() + [results[keyOriginal]])
+    #AccuracyMatrix[int(results[keyOriginal]), int(raw_data.y[keyOriginal])] += 1
 
+    #save(output_path, "subsampled_1", subsampled)
 
-    for keyOriginal in range(shifted_raw_data.pos.shape[0]):
-        if keyOriginal in results.keys():
-            sampled_pos.append(shifted_raw_data.pos[keyOriginal].tolist())
-            sampled_preds.append(results[keyOriginal])
-            subsampled.append(raw_data.pos[keyOriginal].tolist() + raw_data.rgb[keyOriginal].tolist() + [results[keyOriginal]])
+    processing_timer_end = timer()
 
-            AccuracyMatrix[int(results[keyOriginal]), int(raw_data.y[keyOriginal])] += 1
-        else:
-            sampled_pos_forKnn.append(raw_data.pos[keyOriginal].tolist())
-            sampled_rgb_forKnn.append(raw_data.rgb[keyOriginal].tolist())
-            sampled_y_forKnn.append(raw_data.y[keyOriginal].tolist())
-
-    save(output_path, "subsampled_1", subsampled)
+    print(f"Run Processing Time 2: {round(processing_timer_end - processing_start_end, 2)} seconds")
 
     fknn = FaissKNeighbors(k=5)  # use 1 to get exact or closest.  Use a higher number to remove noisy predictions
     fknn.fit(np.array(sampled_pos), np.array(sampled_preds))
 
-    n = len(sampled_pos_forKnn)
+    n = len(remainder_index)
     batch_size = 65000
     batches = math.ceil(n / batch_size)
 
-    raw_pos = np.array(sampled_pos_forKnn)
-    raw_rgb = np.array(sampled_rgb_forKnn)
-    raw_y = np.array(sampled_y_forKnn)
+    raw_pos = raw_data.pos[np.array(remainder_index)]
+    raw_rgb = raw_data.rgb[np.array(remainder_index)]
+    # raw_y = raw_data.y[np.array(remainder_index)]
     prediction = np.array([])
     for a in Ctq(range(batches)):
         start = a * batch_size
@@ -117,38 +119,59 @@ def run(model: BaseModel, dataset, device, output_path, process_full=True, confi
     #TODO make this more efficient.  O(N)
     # Probably could move to previous loop or use numpy instead of python list
 
-    KnnPoints = []
+    # KnnPoints = []
 
     print("adding full resolution points...")
     # for index, val in enumerate(Ctq(raw_pos)):
     #     KnnPoints.append(raw_data.pos[index].tolist() + raw_data.rgb[index].tolist() + [prediction[index]])
     #     AccuracyMatrix[int(prediction[index]), int(raw_data.y[index])] += 1
 
-    for index in range(raw_pos.shape[0]):
-        KnnPoints.append(raw_pos[index].tolist() + raw_rgb[index].tolist() + [prediction[index]])
-        AccuracyMatrix[int(prediction[index]), int(raw_y[index])] += 1
+    # for index in range(raw_pos.shape[0]):
+    #     KnnPoints.append(raw_pos[index].tolist() + raw_rgb[index].tolist() + [prediction[index]])
+    #     AccuracyMatrix[int(prediction[index]), int(raw_y[index])] += 1
 
+    prediction = prediction.reshape(prediction.shape[0], 1)
+    subsampled2 = np.concatenate((raw_pos, raw_rgb, prediction), axis=1)
+    subsampled = np.concatenate((subsampled, subsampled2))
 
-    save(output_path, "knn_1", KnnPoints)
+    processing_timer_end = timer()
 
-    # counterr = 0
-    # for a in range(len(KnnPoints)):
-    #     for b in range(len(subsampled)):
-    #         if KnnPoints[a] == subsampled[b]:
-    #             counterr += 1
-    #             print(counterr)
+    print(f"Run Processing Time 3: {round(processing_timer_end - processing_start_end, 2)} seconds")
 
+    fmt = '%s', '%s', '%s', '%d', '%d', '%d', '%d'
 
+    np.savetxt(os.path.join(output_path, 'nptxt.txt'), subsampled, fmt=fmt)
 
-    print(AccuracyMatrix)
+    processing_timer_end = timer()
 
-    # printing accuracy:
+    print(f"Run Processing Time 4: {round(processing_timer_end - processing_start_end, 2)} seconds")
 
-    for a in range(AccuracyMatrix.shape[1]):
-        if sum(AccuracyMatrix[:, a]) > 0:
-            print(f"accuracy class " + str(a) + ": " + str(AccuracyMatrix[a, a] * 100.0 / sum(AccuracyMatrix[:, a])))
-        else:
-            print(f"accuracy class " + str(a) + ": 0%" )
+    if include_labels == True:
+        remainder_index = remainder_index.reshape(remainder_index.shape[0], 1)
+
+        remainder = np.concatenate((remainder_index, prediction), axis = 1)
+        npresults = np.concatenate((npresults, remainder))
+
+        dictnpresults = dict(npresults)
+        dictnpresults = sorted(dictnpresults.items())
+        dictnpresults = list(dictnpresults)
+        dictnpresults = np.array(dictnpresults)
+        raw_data_y = raw_data.y.reshape((raw_data.y.shape[0], 1))
+
+        PredvsLabels = np.concatenate((dictnpresults, raw_data_y), axis=1)
+
+        # printing accuracy:
+
+        for a in range(3):
+            if PredvsLabels[PredvsLabels[:,2]==a].shape[0] > 0:
+                print(PredvsLabels[(PredvsLabels[:,2]==a) & (PredvsLabels[:,1]==a)].shape[0]
+                  /PredvsLabels[PredvsLabels[:,2]==a].shape[0])
+            else:
+                print(0.0)
+
+        processing_timer_end = timer()
+
+    print(f"Run Processing Time Final: {round(processing_timer_end - processing_start_end, 2)} seconds")
 
 
 @hydra.main(config_path="conf/nexplore.yaml")
@@ -197,6 +220,10 @@ def main(cfg):
     log.info(model)
     log.info("Model size = %i", sum(param.numel() for param in model.parameters() if param.requires_grad))
 
+    processin_timer_end = timer()
+
+    print(f"PreProcessing Time: {round(processin_timer_end - compute_timer_start, 2)} seconds")
+
     # Set dataloaders
     processing_timer_start = timer()
     dataset = instantiate_dataset(checkpoint.data_config)
@@ -218,7 +245,7 @@ def main(cfg):
     if not os.path.exists(cfg.output_path):
         os.makedirs(cfg.output_path)
 
-    run(model, dataset, device, cfg.output_path, cfg.process_full_resolution, cfg.confidence_threshold)
+    run(model, dataset, device, cfg.output_path, cfg.confidence_threshold, cfg.include_labels)
 
     compute_timer_end = timer()
 

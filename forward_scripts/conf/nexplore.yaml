@@ -3,14 +3,15 @@ batch_size: 1
 cuda: 1
 weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest] ['latest', 'best_loss_seg', 'best_acc', 'best_macc', 'best_miou']
 enable_cudnn: True
-checkpoint_dir: "C:/Users/mpautzke/Data/models/Baselines/KpConv"
-model_name: "KPConvPaper" #TOTO
+checkpoint_dir: "C:/Users/mpautzke/Data/models/Baselines/KpConv/100epochs/benchmark-KPConvPaper-20210623_154501"
+model_name: "KPConvPaper"
 enable_dropout: False
 process_full_resolution: True
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
-input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/taktkeller/segment_2"
+input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/tule/segment_2"
 input_filename: "segment_2.txt"
-confidence_threshold: 0.0 #all under this confidence are changed to 0
+confidence_threshold: 0.0 #All confidence scores under this threshold change class to first class (other/unclassified/background)
+include_labels: True
 
 # Dataset specific
 defaults:
