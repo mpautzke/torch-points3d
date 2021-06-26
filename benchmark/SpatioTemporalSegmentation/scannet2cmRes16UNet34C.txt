@@ -87,7 +87,7 @@ thomas 04/05 08:44:01     test_phase: test
 thomas 04/05 08:44:01     evaluate_original_pointcloud: False
 thomas 04/05 08:44:01     test_original_pointcloud: False
 thomas 04/05 08:44:01     is_cuda: True
-thomas 04/05 08:44:01     load_path: 
+thomas 04/05 08:44:01     load_path:
 thomas 04/05 08:44:01     log_step: 50
 thomas 04/05 08:44:01     log_level: INFO
 thomas 04/05 08:44:01     num_gpu: 1

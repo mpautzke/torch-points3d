@@ -122,7 +122,7 @@ class ForwardShapenetDataset(BaseDataset):
 
     def get_tracker(self, wandb_log: bool, tensorboard_log: bool):
         """Factory method for the tracker
-        
+
         Arguments:
             wandb_log - Log using weight and biases
             tensorboard_log - Log using tensorboard

@@ -1,0 +1,57 @@
+FROM ubuntu:bionic
+
+SHELL [ "/bin/bash", "--login", "-c" ]
+ENV DEBIAN_FRONTEND=noninteractive
+
+#use local apt proxy
+#RUN echo 'Acquire::http { Proxy "http://192.168.1.105:3142"; };' >> /etc/apt/apt.conf.d/01proxy
+
+# Install Debian packages
+RUN apt -y update && apt -y upgrade
+RUN apt -y install wget python3 build-essential git
+
+# Install Miniconda
+ENV CONDA_DIR=/root/miniconda3
+ENV PATH=$CONDA_DIR/bin:$PATH
+RUN wget -O /conda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    bash /conda.sh -b && \
+    rm -v /conda.sh
+
+# make conda activate command available from /bin/bash shells
+RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile && \
+    conda init bash
+
+# make conda activate command available from /bin/bash --login shells
+RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
+# make conda activate command available from /bin/bash --interative shells
+RUN conda init bash
+
+# install conda packages
+RUN conda install -y -c intel mkl mkl-include && \
+    conda install -y -c pytorch -c conda-forge pytorch torchvision cpuonly && \
+    conda install -y -c anaconda openblas-devel && \
+    conda install -y -c conda-forge pip && \
+    conda install -y scipy && \
+    conda clean -a -f -y
+
+# install pip packages
+RUN pip install torch==1.8.1 && \
+    pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
+    pip install torch-geometric && \
+    pip install torch-points3d && \
+    rm -rfv /root/.cache/pip
+
+# copy code
+COPY . /src/RnD.PointcloudClassification.Points3D/
+
+# copy entrypoint
+COPY entrypoint.sh /
+
+# we need to do this because otherwise loading torch libraries fails
+# due to the binary libraries not being found
+ENV LD_LIBRARY_PATH=/root/miniconda3/lib/python3.8/site-packages/torch/lib
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+WORKDIR /src/RnD.PointcloudClassification.Points3D/
+CMD ["/bin/bash","--login"]

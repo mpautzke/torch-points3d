@@ -17,9 +17,9 @@ log = logging.getLogger(__name__)
 
 class SemanticKitti(Dataset):
     r"""SemanticKITTI: A Dataset for Semantic Scene Understanding of LiDAR Sequences"
-    from the <https://arxiv.org/pdf/1904.01416.pdf> paper, 
+    from the <https://arxiv.org/pdf/1904.01416.pdf> paper,
     containing about 21 lidar scan sequences with dense point-wise annotations.
-    
+
     root dir should be structured as
     rootdir
         └── sequences/
@@ -176,7 +176,7 @@ class SemanticKitti(Dataset):
                             .
                             .
                             .
-                          
+
                             └── 21/
                 """
             )
