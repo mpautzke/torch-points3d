@@ -1,8 +1,8 @@
 # Those arguments defines the training hyper-parameters
 training:
     epochs: 550
-    num_workers: 7
-    batch_size: 8
+    num_workers: 0
+    batch_size: 2
     cuda: 0
     precompute_multi_scale: True # Compute multiscate features on cpu for faster training / inference
     optim:
@@ -30,7 +30,7 @@ training:
 # parameters for Weights and Biases
 wandb:
     project: s3dis
-    log: True
+    log: False
     notes: "Fixed batch norm to 0.02"
     name: "kpconv-bn02"
     public: True # It will be display the model within wandb log, else not.
@@ -38,4 +38,4 @@ wandb:
 
 # parameters for TensorBoard Visualization
 tensorboard:
-    log: False
+    log: True

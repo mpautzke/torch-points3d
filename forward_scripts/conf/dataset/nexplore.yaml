@@ -1,3 +1,4 @@
 data:
     samples: -1
-    radius: 20
+    radius: 40
+    fixed_points: 20000

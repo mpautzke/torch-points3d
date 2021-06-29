@@ -138,7 +138,7 @@ def main(cfg):
     train_dataset_cls = get_dataset_class(checkpoint.data_config)
     # setattr(checkpoint.data_config, "class", "forward.nexplore.NexploreS3DISFusedForwardDataset")
     setattr(checkpoint.data_config, "class", train_dataset_cls.FORWARD_CLASS)
-    setattr(checkpoint.data_config.test_transform[0], "lparams", [5000])
+    setattr(checkpoint.data_config.test_transform[0], "lparams", [cfg.data.fixed_points])
     setattr(checkpoint.data_config, "first_subsampling", 0.08)
     setattr(checkpoint.data_config, "dataroot", cfg.input_path)
     setattr(checkpoint.data_config, "dataset_name", cfg.input_filename)
