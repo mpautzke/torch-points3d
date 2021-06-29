@@ -21,10 +21,13 @@ job_name: benchmark # prefix name for saving the experiment file.
 model_name: KPConvPaper # ??? Name of the specific model to load
 update_lr_scheduler_on: "on_epoch" # ["on_epoch", "on_num_batch", "on_num_sample"]
 selection_stage: ""
-pretty_print: False
+pretty_print: True
 eval_frequency: 1
+
+no_train: False # set to True to skip training and only preprocess
 
 tracker_options: # Extra options for the tracker
   full_res: False
   make_submission: False
   track_boxes: False
+

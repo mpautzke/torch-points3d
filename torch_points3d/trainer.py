@@ -28,7 +28,6 @@ from torch_points3d.visualization import Visualizer
 
 log = logging.getLogger(__name__)
 
-
 class Trainer:
     """
     TorchPoints3d Trainer handles the logic between
@@ -40,6 +39,7 @@ class Trainer:
     """
 
     def __init__(self, cfg):
+        print("Initializing trainer module.")
         self._cfg = cfg
         self._initialize_trainer()
 

@@ -10,7 +10,7 @@ Overview
 ^^^^^^^^^^
 
 We have chosen `Facebook Hydra library <https://hydra.cc/docs/intro>`_  as out core tool for managing the configuration of our experiments. It provides a nice and scalable interface to defining models and datasets. We encourage our users to take a look at their documentation and get a basic understanding of its core functionalities.
-As per their website 
+As per their website
 
 ..
 
@@ -76,7 +76,7 @@ Hydra is expecting the followings arguments from the command line:
 * model_name
 
 The provided ``task`` and ``dataset`` will be used to load the configuration for the dataset at ``conf/data/{task}/{dataset}.yaml`` while the ``model_type`` argument will be used to load the model config at ``conf/models/{task}/{model_type}.yaml``.
-Finally ``model_name`` is used to pull the appropriate model from the model configuration file. 
+Finally ``model_name`` is used to pull the appropriate model from the model configuration file.
 
 Training arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -279,7 +279,7 @@ The UNet will be built recursively from the middle using the ``UnetSkipConnectio
 
 **UnetSkipConnectionBlock**
 .. code-block::
-    
+
     Defines the Unet submodule with skip connection.
     X -------------------identity----------------------
     -- downsampling -- |submodule| -- upsampling --|
@@ -306,10 +306,10 @@ Segmentation
 Preprocessed S3DIS
 """""""""""""""""""
 
-We support a couple of flavours or `S3DIS <http://buildingparser.stanford.edu>`_. The dataset used for ``S3DIS1x1`` is coming from 
-https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/s3dis.html. 
+We support a couple of flavours or `S3DIS <http://buildingparser.stanford.edu>`_. The dataset used for ``S3DIS1x1`` is coming from
+https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/s3dis.html.
 
-It is a preprocessed version of the original data where each sample is a 1mx1m extraction of the original data. It was initially used in PointNet. 
+It is a preprocessed version of the original data where each sample is a 1mx1m extraction of the original data. It was initially used in PointNet.
 
 
 Raw S3DIS
@@ -326,7 +326,7 @@ We provide some data transform for combining each area back together and split t
 Shapenet
 """""""""""""""""""
 
-`Shapenet <https://www.shapenet.org/>`_ is a simple dataset that allows quick prototyping for segmentation models. 
+`Shapenet <https://www.shapenet.org/>`_ is a simple dataset that allows quick prototyping for segmentation models.
 When used in single class mode, for part segmentation on airplanes for example, it is a good way to figure out if your implementation is correct.
 
 .. image:: ../imgs/shapenet.png

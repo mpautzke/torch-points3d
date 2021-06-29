@@ -4,8 +4,8 @@ data:
   dataroot: C:\Users\mpautzke\Data\points3d
   fold: 3 # Not used for nexplore anymore
   train:
-    samples_per_epoch: 20
-    radius: 40
+    samples_per_epoch: 50
+    radius: 40 #requires regen
     areas: [
         "a40",
         "dover_flint",
@@ -19,8 +19,8 @@ data:
         "peach"
     ]
   val:
-    samples_per_epoch: 20
-    radius: 40
+    samples_per_epoch: 50
+    radius: 40 #requires regen
     areas: [
         "a40",
         "dover_flint",
@@ -35,7 +35,7 @@ data:
     ]
   test:
     samples_per_epoch: 50
-    radius: 40
+    radius: 40 # requires regen
     areas: [
         "tule",
         "taktkeller"

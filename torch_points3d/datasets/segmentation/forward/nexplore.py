@@ -23,7 +23,7 @@ import shutil
 from torch_geometric.nn import knn_interpolate
 from torch_points3d.core.data_transform import SaveOriginalPosId
 from torch_geometric.io import read_txt_array
-from torch_points3d.datasets.segmentation.nexplore_old import shift_and_quantize, OBJECT_COLOR
+from torch_points3d.datasets.segmentation.nexplore import shift_and_quantize, OBJECT_COLOR
 
 from torch_points3d.datasets.samplers import BalancedRandomSampler
 import torch_points3d.core.data_transform as cT
@@ -32,7 +32,7 @@ from torch_points3d.datasets.base_dataset import BaseDataset
 DIR = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger(__name__)
 
-S3DIS_NUM_CLASSES = 3
+
 
 def to_ply(pos, label, file):
     assert len(label.shape) == 1
@@ -53,7 +53,23 @@ def to_ply(pos, label, file):
 
 ################################### UTILS #######################################
 
-def read_s3dis_format(train_file, shift_quantize = False):
+S3DIS_NUM_CLASSES = 4
+
+INV_OBJECT_LABEL = {
+    0: "other",
+    1: "road",
+    2: "powerpole",
+    3: "cable"
+}
+
+OBJECT_LABEL = {name: i for i, name in INV_OBJECT_LABEL.items()}
+
+def object_name_to_label(object_class):
+    """convert from object name in S3DIS to an int"""
+    object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
+    return object_label
+
+def read_s3dis_format(train_file, shift_quantize = False, verbose = False, include_labels = True):
     """extract data from a room folder"""
     raw_path = osp.join(train_file)
     room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
@@ -62,7 +78,6 @@ def read_s3dis_format(train_file, shift_quantize = False):
 
     shift_vector = np.array([0,0,0])
     if shift_quantize:
-        #TODO do we need to keep shift_vector?
         xyz, shift_vector = shift_and_quantize(xyz)
 
     # outliers = remove_outliers(xyz)
@@ -75,8 +90,35 @@ def read_s3dis_format(train_file, shift_quantize = False):
 
     n_ver = len(room_ver)
     semantic_labels = np.zeros((n_ver,), dtype="int64")
+    instance_labels = np.zeros((n_ver,), dtype="int64")
 
-    return torch.from_numpy(xyz), torch.from_numpy(rgb), torch.from_numpy(semantic_labels)
+    if not include_labels:
+        return torch.from_numpy(xyz), torch.from_numpy(rgb), torch.from_numpy(semantic_labels)
+
+    nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(xyz)
+    objects = glob.glob(osp.join(train_file, "annotations/*.txt"))
+    i_object = 1
+    for single_object in objects:
+        object_name = os.path.splitext(os.path.basename(single_object))[0]
+        if object_name == "remainder":  # expand to a list
+            continue
+        if verbose:
+            log.debug("adding object " + str(i_object) + " : " + object_name)
+        object_class = object_name.split("_")[0]
+        object_label = object_name_to_label(object_class)
+        obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
+        obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
+        obj_xyz, _ = shift_and_quantize(obj_xyz, manual_shift=shift_vector)
+        _, obj_ind = nn.kneighbors(obj_xyz)
+        semantic_labels[obj_ind] = object_label
+        instance_labels[obj_ind] = i_object
+        i_object = i_object + 1
+
+    return (
+        torch.from_numpy(xyz),
+        torch.from_numpy(rgb),
+        torch.from_numpy(semantic_labels),  # actual label
+    )
 
 #TODO Would need to modify original file if we remove outliers as we depend on original index
 def remove_outliers(xyz, x_c = 5, y_c = 5, z_c = 20):
@@ -114,7 +156,9 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         pre_filter=None,
         verbose=False,
         debug=False,
+        include_labels=True
     ):
+        self.include_labels = include_labels
         self.fname = fname
         self.path = os.path.join(root, fname)
         self.transform = transform
@@ -128,12 +172,12 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         super(NexploreS3DISOriginalFused, self).__init__(root, transform, pre_transform, pre_filter)
 
         self._load_data(self.processed_file_names[0])
-        self.raw_test_data = self.read_raw_data() #TODO do not hold in mem
-        self.shifted_test_data = self.read_raw_data(shift_quantize=True) #TODO do not hold in mem
+        self.raw_test_data = self.read_raw_data(include_labels=self.include_labels) #TODO do not hold in mem
+        self.shifted_test_data = self.read_raw_data(shift_quantize=True, include_labels=self.include_labels)
 
-    def read_raw_data(self, shift_quantize=False):
+    def read_raw_data(self, shift_quantize=False, include_labels=True):
         xyz, rgb, semantic_labels = read_s3dis_format(
-            self.path, shift_quantize=shift_quantize
+            self.path, shift_quantize=shift_quantize, include_labels=include_labels
         )
 
         return Data(pos=xyz.numpy(), y=semantic_labels.numpy(), rgb=rgb.numpy())
@@ -187,7 +231,7 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
     def process(self):
         if not os.path.exists(self.processed_file_names[0]):
             xyz, rgb, semantic_labels = read_s3dis_format(
-                self.path, shift_quantize=True
+                self.path, shift_quantize=True, include_labels=True
             )
 
             rgb_norm = rgb.float() / 255.0
@@ -209,7 +253,7 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
 
 
 class NexploreS3DISSphere(NexploreS3DISOriginalFused):
-    """ Small variation of S3DISOriginalFused that allows random sampling of spheres 
+    """ Small variation of S3DISOriginalFused that allows random sampling of spheres
     within an Area during training and validation. Spheres have a radius of 2m. If sample_per_epoch is not specified, spheres
     are taken on a 2m grid.
 
@@ -273,6 +317,7 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
             radius=dataset_opt.radius,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.test_transform,
+            include_labels=dataset_opt.include_labels
         )
 
         if dataset_opt.class_weight_method:
@@ -310,31 +355,28 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
 
         return S3DISTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
 
-    def predict_original_samples(self, batch, conv_type, output):
-        """ Takes the output generated by the NN and upsamples it to the original data
-        Arguments:
-            batch -- processed batch
-            conv_type -- Type of convolutio (DENSE, PARTIAL_DENSE, etc...)
-            output -- output predicted by the model
-        """
+    def predict_original_samples(self, batch, conv_type, output, confidence_threshold=0.0):
         full_res_results = {}
         num_sample = BaseDataset.get_num_samples(batch, conv_type)
         if conv_type == "DENSE":
             output = output.reshape(num_sample, -1, output.shape[-1])  # [B,N,L]
 
         setattr(batch, "_pred", output)
-        softmax = torch.nn.Softmax(dim=1)
         for b in range(num_sample):
             predicted = BaseDataset.get_sample(batch, "_pred", b, conv_type).reshape(-1, output.shape[-1])
+            # labels = np.zeros((predicted.shape[0]), dtype=np.int64)
             origindid = BaseDataset.get_sample(batch, SaveOriginalPosId.KEY, b, conv_type).cpu().numpy()
-            #TODO need to take original pos and interpolate with transformed pos
-            # full_prediction = knn_interpolate(predicted, sample_raw_pos[origindid], sample_raw_pos, k=3)
-            predicted = softmax(predicted)
-            values, labels = predicted.max(1)
-            labels[values < 0.0] = 0 #threshold
-            labels = labels.cpu().numpy()
+
+            if confidence_threshold > 0.0:
+                softmax = torch.nn.Softmax(dim=1)
+                predicted = softmax(predicted)
+                values, labels = predicted.max(1)
+                labels[values < confidence_threshold] = 0  # threshold
+                labels = labels.cpu().numpy()
+            else:
+                labels = predicted.max(1)[1].cpu().numpy()
 
             for index, id in enumerate(origindid):
                 full_res_results[id] = labels[index]
-        return full_res_results
 
+        return full_res_results

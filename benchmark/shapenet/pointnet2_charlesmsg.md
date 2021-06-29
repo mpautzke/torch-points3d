@@ -875,7 +875,7 @@ BEST
 * best_loss_seg: 0.06631797552108765
 * test_Cmiou = 97.9368103974044
 * test_Imiou = 96.3840916196669
-* miou_per_class 
+* miou_per_class
 ```json
 {
 'Airplane':0.9688190282061018,

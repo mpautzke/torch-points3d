@@ -107,7 +107,7 @@ class PointNetSeg(torch.nn.Module):
         if x_feat_trans.dim() == 2:
             feat_concat = torch.cat([x_feat_trans, global_feature[batch]], dim=1)
         else:
-            feat_concat = torch.cat([x_feat_trans, 
+            feat_concat = torch.cat([x_feat_trans,
                                     global_feature.unsqueeze(1).repeat((1, x_feat_trans.shape[1], 1))], dim=-1)
         out = self.seg_nn(feat_concat)
 

@@ -36,7 +36,7 @@ You can easily install Torch Points3D with ``pip``
 
    pip install torch
    pip install torch-points3d
-   
+
 but first make sure that the following dependencies are met
 
 - CUDA 10 or higher (if you want GPU version)
@@ -86,7 +86,7 @@ The following models have been tested and validated:
 * `KPConv: Flexible and Deformable Convolution for Point Clouds <https://arxiv.org/abs/1904.08889>`_
 * `PointCNN: Convolution On X-Transformed Points <https://arxiv.org/abs/1801.07791>`_
 * `PointNet++: Deep Hierarchical Feature Learning on Point Sets in a Metric Space <https://arxiv.org/abs/1706.02413>`_
-* `4D Spatio-Temporal ConvNets: Minkowski Convolutional Neural Networks <https://arxiv.org/abs/1904.08755>`_ 
+* `4D Spatio-Temporal ConvNets: Minkowski Convolutional Neural Networks <https://arxiv.org/abs/1904.08755>`_
 * `Deep Hough Voting for 3D Object Detection in Point Clouds <https://arxiv.org/abs/1904.09664>`_
 
 We are actively working on adding the following ones to the framework:

@@ -22,7 +22,7 @@ class PointNet(BaseModel):
         self._build_model()
 
         self.loss_names = ["loss_seg", "loss_internal"]
-        
+
         self.visual_names = ["data_visual"]
 
     def set_input(self, data, device):
@@ -49,9 +49,9 @@ class PointNet(BaseModel):
     def forward(self, *args, **kwargs):
         x = self.pointnet_seg(self.input_features, self.input.batch)
         self.output = x
-        
+
         internal_loss = self.get_internal_loss()
-        
+
         if self.labels is not None:
             self.loss_seg = F.cross_entropy(
                 self.output, self.labels, ignore_index=IGNORE_LABEL

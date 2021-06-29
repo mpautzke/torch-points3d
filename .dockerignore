@@ -18,9 +18,8 @@ measurements/*.pickle
 **/notebooks
 dashboard
 **/outputs
-
 .git
-data
 docs
 .tox
 .mypy_cache
+/Dockerfile*
