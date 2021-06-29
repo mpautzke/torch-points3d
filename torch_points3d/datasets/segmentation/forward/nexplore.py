@@ -95,8 +95,10 @@ def read_s3dis_format(train_file, shift_quantize = False, verbose = False, inclu
     if not include_labels:
         return torch.from_numpy(xyz), torch.from_numpy(rgb), torch.from_numpy(semantic_labels)
 
+    train_file_dir = osp.split(train_file)[0]
+
     nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(xyz)
-    objects = glob.glob(osp.join(train_file, "annotations/*.txt"))
+    objects = glob.glob(osp.join(train_file_dir, "annotations/*.txt"))
     i_object = 1
     for single_object in objects:
         object_name = os.path.splitext(os.path.basename(single_object))[0]

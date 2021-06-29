@@ -9,6 +9,7 @@ from typing import Dict
 import pandas as pd
 import math
 import copy
+from torch_points3d.datasets.segmentation.nexplore import INV_OBJECT_LABEL
 
 
 DIR = os.path.dirname(os.path.realpath(__file__))
@@ -52,7 +53,7 @@ def save(path, postfix, results):
     print(f"{out_file} elapsed time: {round(output_timer_end - output_timer_start, 2)} seconds")
 
 
-def run(model: BaseModel, dataset, device, output_path, process_full = True):
+def run(model: BaseModel, dataset, device, output_path, process_full = True, include_labels=False):
     loaders = dataset.test_dataloaders
     shifted_raw_data = dataset.test_dataset[0].shifted_test_data
     raw_data = dataset.test_dataset[0].raw_test_data
@@ -92,7 +93,7 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True):
     batches = math.ceil(n / batch_size)
 
     raw_pos = np.array(shifted_raw_data.pos)
-    prediction = np.array([], dtype=np.int)
+    predictions = np.array([], dtype=np.int)
     for a in Ctq(range(batches)):
         start = a * batch_size
         end = ((a+1) * batch_size)
@@ -100,11 +101,40 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True):
             end = n
 
         out = fknn.predict(raw_pos[start:end])
-        prediction = np.concatenate((prediction, out))
+        predictions = np.concatenate((predictions, out))
 
-    full_res = concatenate(raw_data.pos, raw_data.rgb.astype(dtype=np.str), prediction.reshape((-1, 1)).astype(dtype=np.str))
+    full_res = concatenate(raw_data.pos, raw_data.rgb.astype(dtype=np.str), predictions.reshape((-1, 1)).astype(dtype=np.str))
 
     save(output_path, "full", full_res)
+
+    if include_labels:
+        stat_timer_start = timer()
+        print("calculating stats...")
+        stats = {}
+        for i in INV_OBJECT_LABEL:
+            stats[i] = {"total": 0, "correct": 0}
+
+        for index, prediction in enumerate(predictions):
+            clazz = shifted_raw_data.y[index]
+            stats[clazz]["total"] += 1
+            if clazz == prediction:
+                stats[clazz]["correct"] += 1
+
+        tacc = 0
+        tclss = 0
+        for sclass in stats.keys():
+            total = stats[sclass]['total']
+            correct = stats[sclass]['correct']
+            if total != 0:
+                acc = correct / total
+                tacc += acc
+                tclss += 1
+
+            print(f"{sclass} total: {stats[sclass]['total']}, correct: {stats[sclass]['correct']}, acc: {acc}")
+
+        print(f"macc: {tacc / tclss}")
+        stat_timer_end = timer()
+        print(f"stats elapsed time:  {round(stat_timer_end - stat_timer_start, 2)} seconds")
 
 def concatenate(pos, rgb, preds):
     pos_rgb = np.concatenate((pos, rgb), axis=1)
@@ -142,6 +172,8 @@ def main(cfg):
     setattr(checkpoint.data_config, "first_subsampling", 0.08)
     setattr(checkpoint.data_config, "dataroot", cfg.input_path)
     setattr(checkpoint.data_config, "dataset_name", cfg.input_filename)
+    setattr(checkpoint.data_config, "include_labels", cfg.data.include_labels)
+    setattr(checkpoint.data_config, "confidence_threshold", cfg.confidence_threshold)
 
 
     # Datset specific configs
@@ -178,7 +210,7 @@ def main(cfg):
     if not os.path.exists(cfg.output_path):
         os.makedirs(cfg.output_path)
 
-    run(model, dataset, device, cfg.output_path, cfg.process_full_resolution)
+    run(model, dataset, device, cfg.output_path, cfg.process_full_resolution, cfg.data.include_labels)
 
     compute_timer_end = timer()
 

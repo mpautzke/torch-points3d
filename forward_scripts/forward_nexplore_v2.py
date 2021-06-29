@@ -82,8 +82,8 @@ def run(model: BaseModel, dataset, device, output_path, confidence_threshold=0.0
 
     results2 = list(results.items())
     npresults = np.array(results2)
-    sampled_pos = raw_data.pos[np.array(sampled_points)]
-    sampled_pos = sampled_pos.astype(np.float64)
+    sampled_pos = shifted_raw_data.pos[np.array(sampled_points)]
+    # sampled_pos = sampled_pos.astype(np.float64) #wont do anything
     sampled_preds = npresults[:, 1]
     sampled_preds2 = sampled_preds.reshape((sampled_preds.shape[0], 1))
     subsampled = np.concatenate((sampled_pos, raw_data.rgb[np.array(sampled_points)], sampled_preds2), axis = 1)
