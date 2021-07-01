@@ -3,10 +3,10 @@ batch_size: 16
 cuda: 0
 weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest]
 enable_cudnn: True
-checkpoint_dir: "C:/Users/mpautzke/Projects/pc_classification/torch-points3d/outputs/benchmark/benchmark-pointnet2_charlesssg-20210505_131918" # "{your_path}/outputs/2020-01-28/11-04-13" for example
+checkpoint_dir: "C:/Users/mpautzke/Data/models/Toronto/benchmark-pointnet2_charlesssg-20210630_161816" # "{your_path}/outputs/2020-01-28/11-04-13" for example
 model_name: "pointnet2_charlesssg"
 enable_dropout: False
-output_path: "C:/Users/mpautzke/Data/output/shapenet" # Where the output goes
+output_path: "C:/Users/mpautzke/Data/output/" # Where the output goes
 input_path: "C:/Users/mpautzke/Data/pc_cap_test" # Folder where to find the data
 
 # Dataset specific

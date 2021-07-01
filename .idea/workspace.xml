@@ -3,11 +3,14 @@
   <component name="ChangeListManager">
     <list default="true" id="5572e688-eba1-424e-9ecd-f93e3033d3c8" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/data/segmentation/nexplore-fixed.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/data/segmentation/nexplore-fixed.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/training/default.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/training/default.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/forward_scripts/conf/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/forward_scripts/conf/config.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/forward_scripts/conf/dataset/nexplore.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/forward_scripts/conf/dataset/nexplore.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/forward_scripts/conf/nexplore.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/forward_scripts/conf/nexplore.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/forward_scripts/forward_nexplore.py" beforeDir="false" afterPath="$PROJECT_DIR$/forward_scripts/forward_nexplore.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/forward_scripts/forward_nexplore_v2.py" beforeDir="false" afterPath="$PROJECT_DIR$/forward_scripts/forward_nexplore_v2.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/torch_points3d/datasets/segmentation/forward/nexplore.py" beforeDir="false" afterPath="$PROJECT_DIR$/torch_points3d/datasets/segmentation/forward/nexplore.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/torch_points3d/datasets/segmentation/nexplore.py" beforeDir="false" afterPath="$PROJECT_DIR$/torch_points3d/datasets/segmentation/nexplore.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,6 +27,17 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/conf/data/segmentation/scannet-fixed.yaml" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/torch_points3d/datasets/segmentation/nexplore.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/conf/training/kpconv.yaml" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/conf/data/segmentation/s3disfused-fixed.yaml" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/conf/training/default_reg.yaml" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/conf/training/default.yaml" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/scripts/datasets/dataset_info.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/conf/data/segmentation/scannet-pvcnn.yaml" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/conf/data/segmentation/nexplore-fixed.yaml" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="ProjectId" id="1soX0W3aKAM7cDOjcaDLvTtz2Qt" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -34,7 +48,28 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
   </component>
-  <component name="RunManager" selected="Python.forward_nexplore">
+  <component name="RunManager" selected="Python.train">
+    <configuration name="dataset_info" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="torch-points3d" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/scripts/datasets" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scripts/datasets/dataset_info.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="export" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="torch-points3d" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -77,27 +112,6 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="forward_nexplore_v2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="torch-points3d" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/forward_scripts" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/forward_scripts/forward_nexplore_v2.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="train" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="torch-points3d" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -121,10 +135,9 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.forward_nexplore" />
-        <item itemvalue="Python.forward_nexplore_v2" />
         <item itemvalue="Python.train" />
         <item itemvalue="Python.forward_nexplore" />
+        <item itemvalue="Python.dataset_info" />
         <item itemvalue="Python.export" />
       </list>
     </recent_temporary>
@@ -161,6 +174,16 @@
           <option name="timeStamp" value="8" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/torch_points3d/datasets/segmentation/forward/nexplore.py</url>
+          <line>239</line>
+          <option name="timeStamp" value="99" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/forward_scripts/forward_nexplore.py</url>
+          <line>173</line>
+          <option name="timeStamp" value="108" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/export.py</url>
           <line>14</line>
           <option name="timeStamp" value="113" />
@@ -171,19 +194,24 @@
           <option name="timeStamp" value="114" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/forward_scripts/forward_nexplore.py</url>
+          <line>187</line>
+          <option name="timeStamp" value="121" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/torch_points3d/datasets/segmentation/nexplore.py</url>
-          <line>108</line>
+          <line>123</line>
           <option name="timeStamp" value="124" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/torch_points3d/datasets/segmentation/nexplore.py</url>
-          <line>672</line>
+          <line>772</line>
           <option name="timeStamp" value="126" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/scripts/datasets/dataset_info.py</url>
-          <line>39</line>
-          <option name="timeStamp" value="130" />
+          <url>file://$PROJECT_DIR$/forward_scripts/forward_nexplore.py</url>
+          <line>169</line>
+          <option name="timeStamp" value="129" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

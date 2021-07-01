@@ -34,13 +34,24 @@ from torch_points3d.datasets.base_dataset import BaseDataset
 DIR = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger(__name__)
 
-S3DIS_NUM_CLASSES = 2
+S3DIS_NUM_CLASSES = 8
+
+# INV_OBJECT_LABEL = {
+#     0: "other",
+#     1: "road",
+#     # 2: "powerpole",
+#     # 3: "cable"
+# }
 
 INV_OBJECT_LABEL = {
     0: "other",
     1: "road",
-    # 2: "powerpole",
-    # 3: "cable"
+    2: "car",
+    3: "vegetation",
+    4: "building",
+    5: "powerpole",
+    6: "cable",
+    7: "fence"
 }
 
 OBJECT_COLOR = np.asarray(
@@ -245,7 +256,7 @@ class NexploreS3DISOriginalFused(Dataset):
         val_areas=[],
         test_areas=[]
     ):
-        assert len(test_areas) > 0
+        # assert len(test_areas) > 0
         assert len(train_areas) > 0
         if val_areas is None:
             val_areas = []
@@ -356,7 +367,7 @@ class NexploreS3DISOriginalFused(Dataset):
             log.info(f"No data found in {self.raw_dir}")
             log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
 
-    def process_train(self,area):
+    def process_train(self, area):
         st = datetime.datetime.utcnow()
         log.info("Starting train preprocessing on %s"%area)
         if os.path.exists(os.path.join(self.processed_dir, "train", area + ".pt")):
@@ -420,7 +431,7 @@ class NexploreS3DISOriginalFused(Dataset):
         self._pp_seconds += tt
         log.info("Completed preprocessing train data for %s in %.1f seconds !"%(area,tt))
 
-    def process_val(self,area):
+    def process_val(self, area):
         st = datetime.datetime.utcnow()
         log.info("Starting val preprocessing on %s"%area)
         if os.path.exists(os.path.join(self.processed_dir, "val", area + ".pt")):
@@ -485,7 +496,7 @@ class NexploreS3DISOriginalFused(Dataset):
         self._pp_seconds += tt
         log.info("Completed preprocessing val data for %s in %.1f seconds !"%(area,tt))
 
-    def process_test(self,area):
+    def process_test(self, area):
         st = datetime.datetime.utcnow()
         log.info("Starting test preprocessing on %s"%area)
         if os.path.exists(os.path.join(self.processed_dir, "test", area + ".pt")):
@@ -542,7 +553,6 @@ class NexploreS3DISOriginalFused(Dataset):
         log.info("Completed preprocessing test data for %s in %.1f seconds !"%(area,tt))
 
     def process(self):
-
         if self._split == "train":
             this_func = self.process_train
             QUEUE = [x for x in self.train_areas]
@@ -566,7 +576,7 @@ class NexploreS3DISOriginalFused(Dataset):
             if len(QUEUE) == 0 or NCPU >= NPROC:
                 break # exit if no more items to queue or if all queue slots are full
             area = QUEUE.pop(0)
-            THREADS[NCPU] = multiprocessing.Process(target=self.process_train,args=(area,))
+            THREADS[NCPU] = multiprocessing.Process(target=this_func,args=(area,))
             log.info("Queueing new job '%s:%s' in thread %d" % (self._split, area, NCPU))
 
         log.info("threading: queued %d jobs with %d jobs remaining" % (NCPU, len(QUEUE)))
@@ -589,7 +599,7 @@ class NexploreS3DISOriginalFused(Dataset):
                         log.info("Queueing new job '%s:%s' in thread %d" % (self._split, area, t))
                         THREADS[t].start()
                     else:
-                        print("thread %d is done and no more jobs, closing."%t)
+                        print("thread %d is done and no more jobs, closing."%t, flush=True)
                         THREADS[t] = None
                         continue
 
@@ -832,18 +842,18 @@ class NexploreS3DISFusedDataset(BaseDataset):
             transform=self.val_transform,
         )
 
-        self.test_dataset = dataset_cls(
-            self._data_path,
-            sample_per_epoch=self.dataset_opt.test.samples_per_epoch,
-            radius=self.dataset_opt.test.radius,
-            split="test",
-            lowres_subsampling=self.dataset_opt.lowres_subsampling,
-            train_areas=dataset_opt.train.areas,
-            val_areas=dataset_opt.val.areas,
-            test_areas=dataset_opt.test.areas,
-            pre_collate_transform=self.pre_collate_transform,
-            transform=self.test_transform,
-        )
+        # self.test_dataset = dataset_cls(
+        #     self._data_path,
+        #     sample_per_epoch=self.dataset_opt.test.samples_per_epoch,
+        #     radius=self.dataset_opt.test.radius,
+        #     split="test",
+        #     lowres_subsampling=self.dataset_opt.lowres_subsampling,
+        #     train_areas=dataset_opt.train.areas,
+        #     val_areas=dataset_opt.val.areas,
+        #     test_areas=dataset_opt.test.areas,
+        #     pre_collate_transform=self.pre_collate_transform,
+        #     transform=self.test_transform,
+        # )
 
         if dataset_opt.class_weight_method:
             self.add_weights(class_weight_method=dataset_opt.class_weight_method)
