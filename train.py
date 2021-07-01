@@ -15,15 +15,15 @@ _LOGO = """
                  /_/
 """
 
-print (_LOGO)
+# print (_LOGO)
 
-print("Imports...")
-print("  > hydra",flush=True)
+# print("Imports...")
+# print("  > hydra",flush=True)
 import hydra
 from omegaconf import OmegaConf
-print("  > OmegaConf",flush=True)
+# print("  > OmegaConf",flush=True)
 from torch_points3d.trainer import Trainer
-print("  > torch_points3d.trainer",flush=True)
+# print("  > torch_points3d.trainer",flush=True)
 
 @hydra.main(config_path="conf/config.yaml")
 def main(cfg):
@@ -44,4 +44,5 @@ def main(cfg):
     hydra._internal.hydra.GlobalHydra.get_state().clear()
     return 0
 
-main()
+if __name__ == '__main__':
+    main()

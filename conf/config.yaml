@@ -8,7 +8,7 @@ defaults: # for loading the default config
 
   - visualization: default
   - lr_scheduler: exponential
-  - training: kpconv
+  - training: default
 
   - debugging: default.yaml
   - models: ${defaults.0.task}/${defaults.1.model_type}
@@ -21,7 +21,7 @@ job_name: benchmark # prefix name for saving the experiment file.
 model_name: KPConvPaper # ??? Name of the specific model to load
 update_lr_scheduler_on: "on_epoch" # ["on_epoch", "on_num_batch", "on_num_sample"]
 selection_stage: ""
-pretty_print: True
+pretty_print: False
 eval_frequency: 1
 
 no_train: False # set to True to skip training and only preprocess

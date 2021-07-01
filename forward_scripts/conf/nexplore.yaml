@@ -3,8 +3,8 @@ batch_size: 1
 cuda: 1
 weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest]
 enable_cudnn: True
-checkpoint_dir: "C:/Users/mpautzke/Data/models/Baselines/KpConv/100epochs/benchmark-KPConvPaper-20210623_154501"
-model_name: "KPConvPaper"
+checkpoint_dir: "C:/Users/mpautzke/Data/models/Toronto/benchmark-pointnet2_charlesssg-20210630_161816"
+model_name: "pointnet2_charlesssg"
 enable_dropout: False
 process_full_resolution: True
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
