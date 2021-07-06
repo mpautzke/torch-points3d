@@ -3,13 +3,13 @@ batch_size: 1
 cuda: 1
 weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest]
 enable_cudnn: True
-checkpoint_dir: "C:/Users/mpautzke/Data/models/Toronto/benchmark-pointnet2_charlesssg-20210630_161816"
-model_name: "pointnet2_charlesssg"
+checkpoint_dir: "C:/Users/mpautzke/Data/models/Toronto/benchmark-KPConvPaper-20210630_182145"
+model_name: "KPConvPaper"
 enable_dropout: False
 process_full_resolution: True
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
-input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/tule/segment_2"
-input_filename: "segment_2.txt"
+input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/toronto_1/segment_4"
+input_filename: "segment_4.txt"
 confidence_threshold: 0.0 #All confidence scores under this threshold change class to first class (other/unclassified/background)
 
 # Dataset specific

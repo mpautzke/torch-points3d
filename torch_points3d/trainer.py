@@ -1,6 +1,7 @@
 import os
 import copy
 import torch
+import torch.nn as nn
 import hydra
 import time
 import logging
@@ -42,6 +43,10 @@ class Trainer:
         print("Initializing trainer module.")
         self._cfg = cfg
         self._initialize_trainer()
+
+    def set_parameter_requires_grad(self, model, requires_grad):
+        for param in model.parameters():
+            param.requires_grad = requires_grad
 
     def _initialize_trainer(self):
         # Enable CUDNN BACKEND
@@ -85,6 +90,12 @@ class Trainer:
             self._model: BaseModel = self._checkpoint.create_model(
                 self._dataset, weight_name=self._cfg.training.weight_name
             )
+            # if self._cfg.training.transfer_learning:
+            #     num_features = self._model.FC_layer.Class.in_features
+            #
+            #     self._model.FC_layer.Class = nn.Sequential(
+            #         nn.Linear(num_features, 2)
+            #     )
         else:
             self._dataset: BaseDataset = instantiate_dataset(self._cfg.data)
             self._model: BaseModel = instantiate_model(copy.deepcopy(self._cfg), self._dataset)
