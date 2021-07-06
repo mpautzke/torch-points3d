@@ -1,42 +1,49 @@
 data:
   task: segmentation
   class: nexplore.NexploreS3DISFusedDataset
-  dataroot: C:\Users\mpautzke\Data\points3d
+#  dataroot: C:\Users\mpautzke\Data\points3d
+  dataroot: D:\SensatUrbanDataset
   fold: 3 # Not used for nexplore anymore
   train:
-    samples_per_epoch: 500
+    samples_per_epoch: 50
     radius: 20 #requires regen
     areas: [
 #        "a40",
 #        "dover_flint",
 #        "dutch_john",
-#        "floral_ave",
 #        "handford_2",
 #        "handford_1",
+#        "floral_ave",
 #        "houston",
 #        "orange_ave_connector",
 #        "orange_oregon",
 #        "peach"
-         "toronto_1"
+#        "toronto_1"
+         "sensat_birminghan_1",
+         "sensat_cambridge_02",
+         "sensat_cambridge_10"
     ]
   val:
-    samples_per_epoch: 200
+    samples_per_epoch: 25
     radius: 20 #requires regen
     areas: [
 #        "a40",
 #        "dover_flint",
 #        "dutch_john",
-#        "floral_ave",
 #        "handford_2",
 #        "handford_1",
+#        "floral_ave",
 #        "houston",
 #        "orange_ave_connector",
 #        "orange_oregon",
 #        "peach"
-         "toronto_1"
+#         "toronto_1"
+        "sensat_birminghan_1",
+        "sensat_cambridge_02",
+        "sensat_cambridge_10"
     ]
   test:
-    samples_per_epoch: 200
+    samples_per_epoch: 25
     radius: 20 # requires regen
     areas: [
 #        "tule",

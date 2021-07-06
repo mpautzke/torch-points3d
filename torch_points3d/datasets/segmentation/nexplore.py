@@ -34,15 +34,29 @@ from torch_points3d.datasets.base_dataset import BaseDataset
 DIR = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger(__name__)
 
-S3DIS_NUM_CLASSES = 8
 
+# S3DIS_NUM_CLASSES = 2
 # INV_OBJECT_LABEL = {
 #     0: "other",
 #     1: "road",
-#     # 2: "powerpole",
-#     # 3: "cable"
+# #     # 2: "powerpole",
+# #     # 3: "cable"
 # }
 
+# Toronto3d
+# S3DIS_NUM_CLASSES = 8
+# INV_OBJECT_LABEL = {
+#     0: "other",
+#     1: "road",
+#     2: "car",
+#     3: "vegetation",
+#     4: "building",
+#     5: "powerpole",
+#     6: "cable",
+#     7: "fence"
+# }
+
+S3DIS_NUM_CLASSES = 14
 INV_OBJECT_LABEL = {
     0: "other",
     1: "road",
@@ -51,24 +65,47 @@ INV_OBJECT_LABEL = {
     4: "building",
     5: "powerpole",
     6: "cable",
-    7: "fence"
+    7: "wall",
+    8: "bridge",
+    9: "parking",
+    10: "footpath",
+    11: "rail",
+    12: "ground",
+    13: "water"
 }
+
+# INV_OBJECT_LABEL = {
+#     0: "other",
+#     1: "ground", #powerpole
+#     2: "vegetation",
+#     3: "building",
+#     4: "wall",
+#     5: "bridge",
+#     6: "parking",
+#     7: "rail",
+#     8: "road",
+#     9: "street",
+#     10: "car",
+#     11: "footpath",
+#     12: "bike",
+#     13: "water",
+# }
 
 OBJECT_COLOR = np.asarray(
     [
         [233, 229, 107],  # 'road' .-> .yellow
         [95, 156, 196],  # 'powerpole' .-> . blue
         [179, 116, 81],  # 'cable'  ->  brown
-        # [241, 149, 131],  # 'beam'  ->  salmon
-        # [81, 163, 148],  # 'column'  ->  bluegreen
-        # [77, 174, 84],  # 'window'  ->  bright green
-        # [108, 135, 75],  # 'door'   ->  dark green
-        # [41, 49, 101],  # 'chair'  ->  darkblue
-        # [79, 79, 76],  # 'table'  ->  dark grey
-        # [223, 52, 52],  # 'bookcase'  ->  red
-        # [89, 47, 95],  # 'sofa'  ->  purple
-        # [81, 109, 114],  # 'board'   ->  grey
-        # [233, 233, 229],  # 'clutter'  ->  light grey
+        [241, 149, 131],  # 'beam'  ->  salmon
+        [81, 163, 148],  # 'column'  ->  bluegreen
+        [77, 174, 84],  # 'window'  ->  bright green
+        [108, 135, 75],  # 'door'   ->  dark green
+        [41, 49, 101],  # 'chair'  ->  darkblue
+        [79, 79, 76],  # 'table'  ->  dark grey
+        [223, 52, 52],  # 'bookcase'  ->  red
+        [89, 47, 95],  # 'sofa'  ->  purple
+        [81, 109, 114],  # 'board'   ->  grey
+        [233, 233, 229],  # 'clutter'  ->  light grey
         [0, 0, 0],  # unlabelled .->. black
     ]
 )
@@ -146,6 +183,8 @@ def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debu
                 log.debug("adding object " + str(i_object) + " : " + object_name)
             object_class = object_name.split("_")[0]
             object_label = object_name_to_label(object_class)
+            if object_label == 0:
+                continue
             obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
             obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
             obj_xyz, _ = shift_and_quantize(obj_xyz, manual_shift=shift_vector)

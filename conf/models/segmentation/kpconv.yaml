@@ -2,6 +2,8 @@ models:
   # KPConv: Flexible and Deformable Convolution for Point Clouds (https://arxiv.org/abs/1904.08889)
   # KPConv support format_type="[PARTIAL_DENSE | MESSAGE_PASSING]"
   KPConvPaper:
+#    path_pretrained: "C:/Users/mpautzke/Data/models/Toronto/benchmark-KPConvPaper-20210630_182145/KPConvPaper.pt"
+#    weight_name: "latest"
     class: kpconv.KPConvPaper
     conv_type: "PARTIAL_DENSE"
     use_category: ${data.use_category}
