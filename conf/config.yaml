@@ -8,7 +8,7 @@ defaults: # for loading the default config
 
   - visualization: default
   - lr_scheduler: exponential
-  - training: default
+  - training: kpconv
 
   - debugging: default.yaml
   - models: ${defaults.0.task}/${defaults.1.model_type}

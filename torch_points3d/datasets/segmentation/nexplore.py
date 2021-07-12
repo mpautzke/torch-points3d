@@ -416,7 +416,8 @@ class NexploreS3DISOriginalFused(Dataset):
         train_data_list = []
         manual_shift = None
         dirs = os.listdir(osp.join(self.raw_dir, area))
-        dirs.pop() #last segment used for val
+        if len(dirs) > 1:
+            dirs.pop() #last segment used for val
 
         for segment_name in dirs:
             segment_path = osp.join(self.raw_dir, area, segment_name)

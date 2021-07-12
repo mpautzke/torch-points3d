@@ -6,7 +6,7 @@ training:
     cuda: 0
     precompute_multi_scale: True # Compute multiscate features on cpu for faster training / inference
     optim:
-        base_lr: 0.01
+        base_lr: 0.001
         grad_clip: 100
         optimizer:
             class: SGD

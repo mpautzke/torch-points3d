@@ -9,6 +9,7 @@ data:
     radius: 20 #requires regen
     areas: [
 #        "a40",
+        "a40_fs",
 #        "dover_flint",
 #        "dutch_john",
 #        "handford_2",
@@ -18,10 +19,24 @@ data:
 #        "orange_ave_connector",
 #        "orange_oregon",
 #        "peach"
-#        "toronto_1"
-         "sensat_birminghan_1",
-         "sensat_cambridge_02",
-         "sensat_cambridge_10"
+        "toronto_1",
+#        "sensat_birminghan_1",
+#         "sensat_birminghan_2",
+#         "sensat_birminghan_3",
+#         "sensat_birminghan_4",
+#         "sensat_birminghan_5",
+#         "sensat_cambridge_01",
+#         "sensat_cambridge_02",
+#         "sensat_cambridge_03",
+#         "sensat_cambridge_04",
+#         "sensat_cambridge_05",
+#         "sensat_cambridge_06",
+#         "sensat_cambridge_07",
+#         "sensat_cambridge_08",
+#         "sensat_cambridge_09",
+#         "sensat_cambridge_10",
+#         "sensat_cambridge_11"
+
     ]
   val:
     samples_per_epoch: 25
@@ -37,10 +52,13 @@ data:
 #        "orange_ave_connector",
 #        "orange_oregon",
 #        "peach"
-#         "toronto_1"
-        "sensat_birminghan_1",
-        "sensat_cambridge_02",
-        "sensat_cambridge_10"
+        "toronto_1",
+#        "sensat_birminghan_1",
+#        "sensat_birminghan_2",
+#        "sensat_birminghan_3",
+#        "sensat_cambridge_01",
+#        "sensat_cambridge_02",
+#        "sensat_cambridge_03",
     ]
   test:
     samples_per_epoch: 25
