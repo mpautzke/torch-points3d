@@ -3,13 +3,13 @@ batch_size: 1
 cuda: 1
 weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest]
 enable_cudnn: True
-checkpoint_dir: "C:/Users/mpautzke/Data/models/Toronto/benchmark-KPConvPaper-20210630_182145"
+checkpoint_dir: "C:/Users/mpautzke/Data/models/sensaturban/transfer/benchmark-KPConvPaper-20210708_090218"
 model_name: "KPConvPaper"
 enable_dropout: False
 process_full_resolution: True
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
-input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/toronto_1/segment_4"
-input_filename: "segment_4.txt"
+input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/a40_fs/segment_3"
+input_filename: "segment_3.txt"
 confidence_threshold: 0.0 #All confidence scores under this threshold change class to first class (other/unclassified/background)
 
 # Dataset specific

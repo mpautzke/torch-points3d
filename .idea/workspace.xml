@@ -3,12 +3,14 @@
   <component name="ChangeListManager">
     <list default="true" id="5572e688-eba1-424e-9ecd-f93e3033d3c8" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/config.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/conf/data/segmentation/nexplore-fixed.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/data/segmentation/nexplore-fixed.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/conf/models/segmentation/kpconv.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/models/segmentation/kpconv.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/conf/training/default.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/training/default.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf/training/kpconv.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/conf/training/kpconv.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/forward_scripts/conf/dataset/nexplore.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/forward_scripts/conf/dataset/nexplore.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/forward_scripts/conf/nexplore.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/forward_scripts/conf/nexplore.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/torch_points3d/datasets/segmentation/nexplore.py" beforeDir="false" afterPath="$PROJECT_DIR$/torch_points3d/datasets/segmentation/nexplore.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/torch_points3d/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/torch_points3d/trainer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,9 +46,9 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../RnD.EarthworksOptimization.SoilIdentification" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
   </component>
-  <component name="RunManager" selected="Python.train">
+  <component name="RunManager" selected="Python.forward_nexplore">
     <configuration name="dataset_info" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="torch-points3d" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -133,8 +135,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.train" />
         <item itemvalue="Python.forward_nexplore" />
+        <item itemvalue="Python.train" />
         <item itemvalue="Python.dataset_info" />
         <item itemvalue="Python.export" />
       </list>
