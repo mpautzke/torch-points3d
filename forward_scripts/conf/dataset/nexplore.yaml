@@ -1,5 +1,5 @@
 data:
     samples: -1
     radius: 20
-    fixed_points: 20000
-    include_labels: True
+    fixed_points: 10000
+    include_labels: False

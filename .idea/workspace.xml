@@ -220,7 +220,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/torch_points3d/datasets/segmentation/nexplore.py</url>
-          <line>185</line>
+          <line>209</line>
           <option name="timeStamp" value="138" />
         </line-breakpoint>
       </breakpoints>
