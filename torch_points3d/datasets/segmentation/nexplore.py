@@ -26,6 +26,7 @@ import shutil
 import os
 import multiprocessing
 from queue import Queue
+from timeit import default_timer as timer
 
 from torch_points3d.datasets.samplers import BalancedRandomSampler
 import torch_points3d.core.data_transform as cT
@@ -56,23 +57,41 @@ log = logging.getLogger(__name__)
 #     7: "fence"
 # }
 
-S3DIS_NUM_CLASSES = 14
+S3DIS_NUM_CLASSES = 2
 INV_OBJECT_LABEL = {
     0: "other",
     1: "road",
-    2: "car",
-    3: "vegetation",
-    4: "building",
-    5: "powerpole",
-    6: "cable",
-    7: "wall",
-    8: "bridge",
-    9: "parking",
-    10: "footpath",
-    11: "rail",
-    12: "ground",
-    13: "water"
+    # 2: "car",
+    # 3: "vegetation",
+    # 2: "building",
+    # 3: "powerpole",
+    # 4: "cable",
+    # 7: "water"
+    # 7: "wall",
+    # 8: "bridge",
+    # 5: "parking",
+    # 6: "footpath",
+    # 7: "rail",
+    # 12: "ground",
 }
+
+INV_OBJECT_LABEL_MAP = {
+    0: ["other"], #reserved for other/background
+    1: ["road", "parking", "bridge"],
+    # 2: ["car"],
+    # 3: ["vegetation"],
+    # 2: ["building"],
+    # 3: ["powerpole"],
+    # 4: ["cable"],
+    # 7: ["water"]
+    # 7: "wall",
+    # 8: "bridge",
+    # 5: "parking",
+    # 6: "footpath",
+    # 7: "rail",
+    # 12: "ground",
+}
+
 
 # INV_OBJECT_LABEL = {
 #     0: "other",
@@ -110,7 +129,7 @@ OBJECT_COLOR = np.asarray(
     ]
 )
 
-OBJECT_LABEL = {name: i for i, name in INV_OBJECT_LABEL.items()}
+# OBJECT_LABEL = {name: i for i, name in INV_OBJECT_LABEL.items()}
 
 #segment types
 ROOM_TYPES = {
@@ -128,9 +147,14 @@ VALIDATION_ROOMS = [
 #GOOD
 def object_name_to_label(object_class):
     """convert from object name in S3DIS to an int"""
+    for key in INV_OBJECT_LABEL_MAP.keys():
+        if object_class.lower() in INV_OBJECT_LABEL_MAP[key]:
+            return key
+    #0 reserved for other
+    return 0
 
-    object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
-    return object_label
+    # object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
+    # return object_label
 
 #TODO segment maybe needed for very large files (100gb+)
 def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debug=False, manual_shift=None):
@@ -406,6 +430,27 @@ class NexploreS3DISOriginalFused(Dataset):
             log.info(f"No data found in {self.raw_dir}")
             log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
 
+    def concatenate(self, pos, rgb, preds):
+        pos_rgb = np.concatenate((pos, rgb), axis=1)
+        pos_rgb_preds = np.concatenate((pos_rgb, preds), axis=1)
+
+        return pos_rgb_preds
+
+    def save_file(self, path, filename, results):
+
+        output_timer_start = timer()
+        os.makedirs(path, exist_ok=True)
+        out_file = f"{filename}.txt"
+        print(f"Writing {out_file}...")
+        path = os.path.join(path, out_file)
+        # np.save(path, results)  #These are faster
+
+        np.savetxt(path, results, fmt='%s')
+        # res_df = pd.DataFrame(results)
+        # res_df.to_csv(path, sep=' ', index=False, header=False)
+        output_timer_end = timer()
+        print(f"{out_file} elapsed time: {round(output_timer_end - output_timer_start, 2)} seconds")
+
     def process_train(self, area):
         st = datetime.datetime.utcnow()
         log.info("Starting train preprocessing on %s"%area)
@@ -431,6 +476,12 @@ class NexploreS3DISOriginalFused(Dataset):
                 xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug, manual_shift=manual_shift
                 )
+
+                # pos_out = np.array(xyz, dtype=np.str)
+                # rgb_out = np.array(rgb, dtype=np.str)
+                # values_out = np.array(semantic_labels, dtype=np.str).reshape((-1, 1))
+                # out = self.concatenate(pos_out, rgb_out, values_out)
+                # self.save_file(os.path.join(self.processed_dir, "train"), f"{area}_debug", out)
                 s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
                 log.info("s3dis train read for %s took %.1f seconds"%(area,s3_tt))
 
