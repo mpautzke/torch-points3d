@@ -22,21 +22,21 @@ data:
 #      "peach",
 #      "toronto",
       "sensat_birminghan_1",
-#      "sensat_birminghan_2",
-#      "sensat_birminghan_3",
-#      "sensat_birminghan_4",
-#      "sensat_birminghan_5",
-#      "sensat_cambridge_01",
-#      "sensat_cambridge_02",
-#      "sensat_cambridge_03",
-#      "sensat_cambridge_04",
-#      "sensat_cambridge_05",
-#      "sensat_cambridge_06",
-#      "sensat_cambridge_07",
-#      "sensat_cambridge_08",
-#      "sensat_cambridge_09",
-#      "sensat_cambridge_10",
-#      "sensat_cambridge_11"
+      "sensat_birminghan_2",
+      "sensat_birminghan_3",
+      "sensat_birminghan_4",
+      "sensat_birminghan_5",
+      "sensat_cambridge_01",
+      "sensat_cambridge_02",
+      "sensat_cambridge_03",
+      "sensat_cambridge_04",
+      "sensat_cambridge_05",
+      "sensat_cambridge_06",
+      "sensat_cambridge_07",
+      "sensat_cambridge_08",
+      "sensat_cambridge_09",
+      "sensat_cambridge_10",
+      "sensat_cambridge_11"
     ]
   val:
     samples_per_epoch: 25
@@ -55,21 +55,21 @@ data:
 #      "tule_fs",
 #      "toronto",
       "sensat_birminghan_1",
-#      "sensat_birminghan_2",
-#      "sensat_birminghan_3",
-#      "sensat_birminghan_4",
-#      "sensat_birminghan_5",
-#      "sensat_cambridge_01",
-#      "sensat_cambridge_02",
-#      "sensat_cambridge_03",
-#      "sensat_cambridge_04",
-#      "sensat_cambridge_05",
-#      "sensat_cambridge_06",
-#      "sensat_cambridge_07",
-#      "sensat_cambridge_08",
-#      "sensat_cambridge_09",
-#      "sensat_cambridge_10",
-#      "sensat_cambridge_11"
+      "sensat_birminghan_2",
+      "sensat_birminghan_3",
+      "sensat_birminghan_4",
+      "sensat_birminghan_5",
+      "sensat_cambridge_01",
+      "sensat_cambridge_02",
+      "sensat_cambridge_03",
+      "sensat_cambridge_04",
+      "sensat_cambridge_05",
+      "sensat_cambridge_06",
+      "sensat_cambridge_07",
+      "sensat_cambridge_08",
+      "sensat_cambridge_09",
+      "sensat_cambridge_10",
+      "sensat_cambridge_11"
     ]
   test:
     samples_per_epoch: 25
@@ -79,7 +79,6 @@ data:
 #        "taktkeller"
 #         "toronto_2"
     ]
-
   object_labels: [
     "other",
     "road",
@@ -89,7 +88,6 @@ data:
     "water",
     "ground"
   ]
-
   object_labels_map: [
     ["other"],
     ["road", "parking", "bridge"],
@@ -99,8 +97,6 @@ data:
     ["water"],
     ["ground"]
   ]
-
-
   first_subsampling: 0.04 # requires regen
   lowres_subsampling: 0.4 # requires regen
   use_category: False # Not used for nexplore
