@@ -90,12 +90,6 @@ class Trainer:
             self._model: BaseModel = self._checkpoint.create_model(
                 self._dataset, weight_name=self._cfg.training.weight_name
             )
-            # if self._cfg.training.transfer_learning:
-            #     num_features = self._model.FC_layer.Class.in_features
-            #
-            #     self._model.FC_layer.Class = nn.Sequential(
-            #         nn.Linear(num_features, 2)
-            #     )
         else:
             self._dataset: BaseDataset = instantiate_dataset(self._cfg.data)
             self._model: BaseModel = instantiate_model(copy.deepcopy(self._cfg), self._dataset)
