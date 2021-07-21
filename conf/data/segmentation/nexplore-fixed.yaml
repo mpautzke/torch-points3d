@@ -79,18 +79,24 @@ data:
 #        "taktkeller"
 #         "toronto_2"
     ]
-
   object_labels: [
     "other",
-    "road"
+    "road",
+    "car",
+    "vegetation",
+    "building",
+    "water",
+    "ground"
   ]
-
   object_labels_map: [
     ["other"],
-    ["road", "parking", "bridge"]
+    ["road", "parking", "bridge"],
+    ["car"],
+    ["vegetation"],
+    ["building"],
+    ["water"],
+    ["ground"]
   ]
-
-
   first_subsampling: 0.04 # requires regen
   lowres_subsampling: 0.4 # requires regen
   use_category: False # Not used for nexplore

@@ -57,40 +57,40 @@ log = logging.getLogger(__name__)
 #     7: "fence"
 # }
 
-S3DIS_NUM_CLASSES = 0
-INV_OBJECT_LABEL = {
-    # 0: "other",
-    # 1: "road",
-    # 2: "car",
-    # 3: "vegetation",
-    # 4: "building",
-    # # 3: "powerpole",
-    # # 4: "cable",
-    # 5: "water",
-    # # 7: "wall",
-    # # 8: "bridge",
-    # # 5: "parking",
-    # # 6: "footpath",
-    # # 7: "rail",
-    # 6: "ground",
-}
+# S3DIS_NUM_CLASSES = 0
+# INV_OBJECT_LABEL = {
+#     # 0: "other",
+#     # 1: "road",
+#     # 2: "car",
+#     # 3: "vegetation",
+#     # 4: "building",
+#     # # 3: "powerpole",
+#     # # 4: "cable",
+#     # 5: "water",
+#     # # 7: "wall",
+#     # # 8: "bridge",
+#     # # 5: "parking",
+#     # # 6: "footpath",
+#     # # 7: "rail",
+#     # 6: "ground",
+# }
 
-INV_OBJECT_LABEL_MAP = {
-    # 0: ["other"], #reserved for other/background
-    # 1: ["road", "parking", "bridge"],
-    # 2: ["car"],
-    # 3: ["vegetation"],
-    # 4: ["building"],
-    # # 3: ["powerpole"],
-    # # 4: ["cable"],
-    # 5: ["water"],
-    # # 7: "wall",
-    # # 8: "bridge",
-    # # 5: "parking",
-    # # 6: "footpath",
-    # # 7: "rail",
-    # 6: ["ground"]
-}
+# INV_OBJECT_LABEL_MAP = {
+#     # 0: ["other"], #reserved for other/background
+#     # 1: ["road", "parking", "bridge"],
+#     # 2: ["car"],
+#     # 3: ["vegetation"],
+#     # 4: ["building"],
+#     # # 3: ["powerpole"],
+#     # # 4: ["cable"],
+#     # 5: ["water"],
+#     # # 7: "wall",
+#     # # 8: "bridge",
+#     # # 5: "parking",
+#     # # 6: "footpath",
+#     # # 7: "rail",
+#     # 6: ["ground"]
+# }
 
 
 # INV_OBJECT_LABEL = {
@@ -296,8 +296,6 @@ class NexploreS3DISOriginalFused(Dataset):
     pre_filter
     """
 
-    num_classes = S3DIS_NUM_CLASSES
-
     _pp_seconds = 0.0
 
     def __init__(
@@ -319,6 +317,8 @@ class NexploreS3DISOriginalFused(Dataset):
         val_areas=[],
         test_areas=[]
     ):
+        self.num_classes = S3DIS_NUM_CLASSES
+        print(f"num_classes: {self.num_classes}")
         # assert len(test_areas) > 0
         assert len(train_areas) > 0
         if val_areas is None:
@@ -914,6 +914,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
             temp_dict[index] = label
 
         INV_OBJECT_LABEL = temp_dict
+        self.INV_OBJECT_LABEL = INV_OBJECT_LABEL
 
         global INV_OBJECT_LABEL_MAP
         temp_dict = {}
