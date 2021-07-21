@@ -53,13 +53,17 @@ def to_ply(pos, label, file):
 
 ################################### UTILS #######################################
 
-S3DIS_NUM_CLASSES = 4
+S3DIS_NUM_CLASSES = 8
 
 INV_OBJECT_LABEL = {
     0: "other",
     1: "road",
-    2: "powerpole",
-    3: "cable"
+    2: "car",
+    3: "vegetation",
+    4: "builidng",
+    5: "powerpole",
+    6: "cable",
+    7: "fence"
 }
 
 OBJECT_LABEL = {name: i for i, name in INV_OBJECT_LABEL.items()}
