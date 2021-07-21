@@ -57,39 +57,39 @@ log = logging.getLogger(__name__)
 #     7: "fence"
 # }
 
-S3DIS_NUM_CLASSES = 2
+S3DIS_NUM_CLASSES = 0
 INV_OBJECT_LABEL = {
-    0: "other",
-    1: "road",
+    # 0: "other",
+    # 1: "road",
     # 2: "car",
     # 3: "vegetation",
-    # 2: "building",
-    # 3: "powerpole",
-    # 4: "cable",
-    # 7: "water"
-    # 7: "wall",
-    # 8: "bridge",
-    # 5: "parking",
-    # 6: "footpath",
-    # 7: "rail",
-    # 12: "ground",
+    # 4: "building",
+    # # 3: "powerpole",
+    # # 4: "cable",
+    # 5: "water",
+    # # 7: "wall",
+    # # 8: "bridge",
+    # # 5: "parking",
+    # # 6: "footpath",
+    # # 7: "rail",
+    # 6: "ground",
 }
 
 INV_OBJECT_LABEL_MAP = {
-    0: ["other"], #reserved for other/background
-    1: ["road", "parking", "bridge"],
+    # 0: ["other"], #reserved for other/background
+    # 1: ["road", "parking", "bridge"],
     # 2: ["car"],
     # 3: ["vegetation"],
-    # 2: ["building"],
-    # 3: ["powerpole"],
-    # 4: ["cable"],
-    # 7: ["water"]
-    # 7: "wall",
-    # 8: "bridge",
-    # 5: "parking",
-    # 6: "footpath",
-    # 7: "rail",
-    # 12: "ground",
+    # 4: ["building"],
+    # # 3: ["powerpole"],
+    # # 4: ["cable"],
+    # 5: ["water"],
+    # # 7: "wall",
+    # # 8: "bridge",
+    # # 5: "parking",
+    # # 6: "footpath",
+    # # 7: "rail",
+    # 6: ["ground"]
 }
 
 
@@ -897,7 +897,8 @@ class NexploreS3DISFusedDataset(BaseDataset):
             - test_transforms
     """
 
-    INV_OBJECT_LABEL = INV_OBJECT_LABEL
+    # INV_OBJECT_LABEL = INV_OBJECT_LABEL
+
 
     FORWARD_CLASS = "forward.nexplore.NexploreS3DISFusedForwardDataset"
 
@@ -906,6 +907,25 @@ class NexploreS3DISFusedDataset(BaseDataset):
 
         sampling_format = dataset_opt.get("sampling_format", "sphere")
         dataset_cls = NexploreS3DISSphere
+
+        global INV_OBJECT_LABEL
+        temp_dict = {}
+        for index, label in enumerate(self.dataset_opt.object_labels):
+            temp_dict[index] = label
+
+        INV_OBJECT_LABEL = temp_dict
+
+        global INV_OBJECT_LABEL_MAP
+        temp_dict = {}
+        for index, label in enumerate(self.dataset_opt.object_labels_map):
+            temp_dict[index] = label
+        INV_OBJECT_LABEL_MAP = temp_dict
+
+        global S3DIS_NUM_CLASSES
+        S3DIS_NUM_CLASSES = len(INV_OBJECT_LABEL.keys())
+
+        for key in INV_OBJECT_LABEL:
+            log.info(f"key: {key}")
 
         self.train_dataset = dataset_cls(
             self._data_path,
