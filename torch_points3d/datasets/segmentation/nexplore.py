@@ -35,80 +35,9 @@ from torch_points3d.datasets.base_dataset import BaseDataset
 DIR = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger(__name__)
 
-
-# S3DIS_NUM_CLASSES = 2
-# INV_OBJECT_LABEL = {
-#     0: "other",
-#     1: "road",
-# #     # 2: "powerpole",
-# #     # 3: "cable"
-# }
-
-# Toronto3d
-# S3DIS_NUM_CLASSES = 8
-# INV_OBJECT_LABEL = {
-#     0: "other",
-#     1: "road",
-#     2: "car",
-#     3: "vegetation",
-#     4: "building",
-#     5: "powerpole",
-#     6: "cable",
-#     7: "fence"
-# }
-
-# S3DIS_NUM_CLASSES = 0
-# INV_OBJECT_LABEL = {
-#     # 0: "other",
-#     # 1: "road",
-#     # 2: "car",
-#     # 3: "vegetation",
-#     # 4: "building",
-#     # # 3: "powerpole",
-#     # # 4: "cable",
-#     # 5: "water",
-#     # # 7: "wall",
-#     # # 8: "bridge",
-#     # # 5: "parking",
-#     # # 6: "footpath",
-#     # # 7: "rail",
-#     # 6: "ground",
-# }
-
-# INV_OBJECT_LABEL_MAP = {
-#     # 0: ["other"], #reserved for other/background
-#     # 1: ["road", "parking", "bridge"],
-#     # 2: ["car"],
-#     # 3: ["vegetation"],
-#     # 4: ["building"],
-#     # # 3: ["powerpole"],
-#     # # 4: ["cable"],
-#     # 5: ["water"],
-#     # # 7: "wall",
-#     # # 8: "bridge",
-#     # # 5: "parking",
-#     # # 6: "footpath",
-#     # # 7: "rail",
-#     # 6: ["ground"]
-# }
-
-
-# INV_OBJECT_LABEL = {
-#     0: "other",
-#     1: "ground", #powerpole
-#     2: "vegetation",
-#     3: "building",
-#     4: "wall",
-#     5: "bridge",
-#     6: "parking",
-#     7: "rail",
-#     8: "road",
-#     9: "street",
-#     10: "car",
-#     11: "footpath",
-#     12: "bike",
-#     13: "water",
-# }
+S3DIS_NUM_CLASSES = 0
+INV_OBJECT_LABEL = {}
+INV_OBJECT_LABEL_MAP = {}
 
 OBJECT_COLOR = np.asarray(
     [

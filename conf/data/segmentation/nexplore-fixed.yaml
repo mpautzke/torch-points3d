@@ -6,7 +6,7 @@ data:
   fold: 3 # Not used for nexplore anymore
   train:
     samples_per_epoch: 50
-    radius: 20 #requires regen
+    radius: 40 #requires regen
     areas: [
 #      "a40",
 #      "a40_fs",
@@ -40,7 +40,7 @@ data:
     ]
   val:
     samples_per_epoch: 25
-    radius: 20 #requires regen
+    radius: 40 #requires regen
     areas: [
 #      "a40",
 #      "dover_flint",
@@ -73,7 +73,7 @@ data:
     ]
   test:
     samples_per_epoch: 25
-    radius: 20 # requires regen
+    radius: 40 # requires regen
     areas: [
 #        "tule",
 #        "taktkeller"
