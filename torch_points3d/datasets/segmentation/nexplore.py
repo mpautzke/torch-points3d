@@ -35,9 +35,11 @@ from torch_points3d.datasets.base_dataset import BaseDataset
 DIR = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger(__name__)
 
-S3DIS_NUM_CLASSES = 0
-INV_OBJECT_LABEL = {}
-INV_OBJECT_LABEL_MAP = {}
+# if not 'INV_OJBECT_LABEL_MAP' in globals():
+#     INV_OBJECT_LABEL_MAP = {}
+# S3DIS_NUM_CLASSES = 0
+# INV_OBJECT_LABEL = {}
+
 
 OBJECT_COLOR = np.asarray(
     [
@@ -58,8 +60,6 @@ OBJECT_COLOR = np.asarray(
     ]
 )
 
-# OBJECT_LABEL = {name: i for i, name in INV_OBJECT_LABEL.items()}
-
 #segment types
 ROOM_TYPES = {
     "segment": 0,
@@ -74,131 +74,132 @@ VALIDATION_ROOMS = [
 ################################### UTILS #######################################
 
 #GOOD
-def object_name_to_label(object_class):
-    """convert from object name in S3DIS to an int"""
-    for key in INV_OBJECT_LABEL_MAP.keys():
-        if object_class.lower() in INV_OBJECT_LABEL_MAP[key]:
-            return key
-    #0 reserved for other
-    return 0
+# def object_name_to_label(object_class):
+#     """convert from object name in S3DIS to an int"""
+#     log.info(INV_OBJECT_LABEL_MAP.keys())
+#     for key in INV_OBJECT_LABEL_MAP.keys():
+#         if object_class.lower() in INV_OBJECT_LABEL_MAP[key]:
+#             return key
+#     #0 reserved for other
+#     return 0
+#
+#     # object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
+#     # return object_label
 
-    # object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
-    # return object_label
-
-#TODO segment maybe needed for very large files (100gb+)
-def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debug=False, manual_shift=None):
-    """extract data from a room folder"""
-    room_type, room_idx = room_name.split("_")
-    room_label = ROOM_TYPES[room_type]
-    raw_path = osp.join(train_file, f"{room_name}.txt")
-    if debug:
-        reader = pd.read_csv(raw_path, delimiter="\n")
-        RECOMMENDED = 10
-        for idx, row in enumerate(reader.values):
-            row = row[0].split(" ")
-            if len(row) != RECOMMENDED:
-                log.info("1: {} row {}: {}".format(raw_path, idx, row))
-
-            try:
-                for r in row:
-                    r = float(r)
-            except:
-                log.info("2: {} row {}: {}".format(raw_path, idx, row))
-
-        return True
-    else:
-        room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
-        xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
-
-        #Shifts to local and quantizes to float32 by default
-        xyz, shift_vector = shift_and_quantize(xyz, manual_shift=manual_shift)
-
-        try:
-            rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
-        except ValueError:
-            rgb = np.zeros((room_ver.shape[0], 3), dtype="uint8")
-            log.warning("WARN - corrupted rgb data for file %s" % raw_path)
-        if not label_out:
-            return xyz, rgb
-        n_ver = len(room_ver)
-        del room_ver
-        nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(xyz)
-        semantic_labels = np.zeros((n_ver,), dtype="int64")
-        room_label = np.asarray([room_label])
-        instance_labels = np.zeros((n_ver,), dtype="int64")
-        objects = glob.glob(osp.join(train_file, "annotations/*.txt"))
-        i_object = 1
-        for single_object in objects:
-            object_name = os.path.splitext(os.path.basename(single_object))[0]
-            if object_name == "remainder": #expand to a list
-                continue
-            if verbose:
-                log.debug("adding object " + str(i_object) + " : " + object_name)
-            object_class = object_name.split("_")[0]
-            object_label = object_name_to_label(object_class)
-            if object_label == 0:
-                continue
-            obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
-            obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
-            obj_xyz, _ = shift_and_quantize(obj_xyz, manual_shift=shift_vector)
-            _, obj_ind = nn.kneighbors(obj_xyz)
-            semantic_labels[obj_ind] = object_label
-            instance_labels[obj_ind] = i_object
-            i_object = i_object + 1
-
-        return (
-            torch.from_numpy(xyz),
-            torch.from_numpy(rgb),
-            torch.from_numpy(semantic_labels), #actual label
-            torch.from_numpy(instance_labels), #index of instance
-            torch.from_numpy(room_label),
-            shift_vector
-        )
-
-def shift_and_quantize(xyz, qtype = np.float32, manual_shift = None):
-    if manual_shift is None:
-        shift_threshold = 100
-        x = xyz[:,0].min()
-        y = xyz[:,1].min()
-        z = xyz[:,2].min()
-
-        shift_x = calc_shift(x, shift_threshold)
-        shift_y = calc_shift(y, shift_threshold)
-        shift_z = calc_shift(z, shift_threshold)
-
-        shift = np.array([shift_x, shift_y, shift_z])
-    else:
-        shift = np.array(manual_shift)
-    scale = 1
-
-    out = np.add(xyz, shift)
-    out = np.multiply(out, scale)
-
-    return out.astype(qtype), shift
-
-def calc_shift(number, threshold):
-    shift = 0
-    if number / threshold > 1:
-        r = int(number % threshold)
-        shift = int(number - r) * -1.00
-    return shift
-
-def to_ply(pos, label, file):
-    assert len(label.shape) == 1
-    assert pos.shape[0] == label.shape[0]
-    pos = np.asarray(pos)
-    colors = OBJECT_COLOR[np.asarray(label)]
-    ply_array = np.ones(
-        pos.shape[0], dtype=[("x", "f4"), ("y", "f4"), ("z", "f4"), ("red", "u1"), ("green", "u1"), ("blue", "u1")]
-    )
-    ply_array["x"] = pos[:, 0]
-    ply_array["y"] = pos[:, 1]
-    ply_array["z"] = pos[:, 2]
-    ply_array["red"] = colors[:, 0]
-    ply_array["green"] = colors[:, 1]
-    ply_array["blue"] = colors[:, 2]
-    el = PlyElement.describe(ply_array, "S3DIS")
-    PlyData([el], byte_order=">").write(file)
+# #TODO segment maybe needed for very large files (100gb+)
+# def read_s3dis_format(train_file, room_name, label_out=True, verbose=False, debug=False, manual_shift=None):
+#     """extract data from a room folder"""
+#     room_type, room_idx = room_name.split("_")
+#     room_label = ROOM_TYPES[room_type]
+#     raw_path = osp.join(train_file, f"{room_name}.txt")
+#     if debug:
+#         reader = pd.read_csv(raw_path, delimiter="\n")
+#         RECOMMENDED = 10
+#         for idx, row in enumerate(reader.values):
+#             row = row[0].split(" ")
+#             if len(row) != RECOMMENDED:
+#                 log.info("1: {} row {}: {}".format(raw_path, idx, row))
+#
+#             try:
+#                 for r in row:
+#                     r = float(r)
+#             except:
+#                 log.info("2: {} row {}: {}".format(raw_path, idx, row))
+#
+#         return True
+#     else:
+#         room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
+#         xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
+#
+#         #Shifts to local and quantizes to float32 by default
+#         xyz, shift_vector = shift_and_quantize(xyz, manual_shift=manual_shift)
+#
+#         try:
+#             rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
+#         except ValueError:
+#             rgb = np.zeros((room_ver.shape[0], 3), dtype="uint8")
+#             log.warning("WARN - corrupted rgb data for file %s" % raw_path)
+#         if not label_out:
+#             return xyz, rgb
+#         n_ver = len(room_ver)
+#         del room_ver
+#         nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(xyz)
+#         semantic_labels = np.zeros((n_ver,), dtype="int64")
+#         room_label = np.asarray([room_label])
+#         instance_labels = np.zeros((n_ver,), dtype="int64")
+#         objects = glob.glob(osp.join(train_file, "annotations/*.txt"))
+#         i_object = 1
+#         for single_object in objects:
+#             object_name = os.path.splitext(os.path.basename(single_object))[0]
+#             if object_name == "remainder": #expand to a list
+#                 continue
+#             if verbose:
+#                 log.debug("adding object " + str(i_object) + " : " + object_name)
+#             object_class = object_name.split("_")[0]
+#             object_label = object_name_to_label(object_class)
+#             if object_label == 0:
+#                 continue
+#             obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
+#             obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
+#             obj_xyz, _ = shift_and_quantize(obj_xyz, manual_shift=shift_vector)
+#             _, obj_ind = nn.kneighbors(obj_xyz)
+#             semantic_labels[obj_ind] = object_label
+#             instance_labels[obj_ind] = i_object
+#             i_object = i_object + 1
+#
+#         return (
+#             torch.from_numpy(xyz),
+#             torch.from_numpy(rgb),
+#             torch.from_numpy(semantic_labels), #actual label
+#             torch.from_numpy(instance_labels), #index of instance
+#             torch.from_numpy(room_label),
+#             shift_vector
+#         )
+#
+# def shift_and_quantize(xyz, qtype = np.float32, manual_shift = None):
+#     if manual_shift is None:
+#         shift_threshold = 100
+#         x = xyz[:,0].min()
+#         y = xyz[:,1].min()
+#         z = xyz[:,2].min()
+#
+#         shift_x = calc_shift(x, shift_threshold)
+#         shift_y = calc_shift(y, shift_threshold)
+#         shift_z = calc_shift(z, shift_threshold)
+#
+#         shift = np.array([shift_x, shift_y, shift_z])
+#     else:
+#         shift = np.array(manual_shift)
+#     scale = 1
+#
+#     out = np.add(xyz, shift)
+#     out = np.multiply(out, scale)
+#
+#     return out.astype(qtype), shift
+#
+# def calc_shift(number, threshold):
+#     shift = 0
+#     if number / threshold > 1:
+#         r = int(number % threshold)
+#         shift = int(number - r) * -1.00
+#     return shift
+#
+# def to_ply(pos, label, file):
+#     assert len(label.shape) == 1
+#     assert pos.shape[0] == label.shape[0]
+#     pos = np.asarray(pos)
+#     colors = OBJECT_COLOR[np.asarray(label)]
+#     ply_array = np.ones(
+#         pos.shape[0], dtype=[("x", "f4"), ("y", "f4"), ("z", "f4"), ("red", "u1"), ("green", "u1"), ("blue", "u1")]
+#     )
+#     ply_array["x"] = pos[:, 0]
+#     ply_array["y"] = pos[:, 1]
+#     ply_array["z"] = pos[:, 2]
+#     ply_array["red"] = colors[:, 0]
+#     ply_array["green"] = colors[:, 1]
+#     ply_array["blue"] = colors[:, 2]
+#     el = PlyElement.describe(ply_array, "S3DIS")
+#     PlyData([el], byte_order=">").write(file)
 
 #Changed from InMemoryDataset to Dataset
 class NexploreS3DISOriginalFused(Dataset):
@@ -230,7 +231,6 @@ class NexploreS3DISOriginalFused(Dataset):
     def __init__(
         self,
         root,
-        test_area=8,
         split="train",
         sample_per_epoch=-1,
         radius=2,
@@ -247,6 +247,8 @@ class NexploreS3DISOriginalFused(Dataset):
         test_areas=[]
     ):
         self.num_classes = S3DIS_NUM_CLASSES
+        self.object_label = INV_OBJECT_LABEL
+        self.object_label_map = INV_OBJECT_LABEL_MAP
         print(f"num_classes: {self.num_classes}")
         # assert len(test_areas) > 0
         assert len(train_areas) > 0
@@ -260,7 +262,6 @@ class NexploreS3DISOriginalFused(Dataset):
         self.test_areas = list(test_areas)
         self.transform = transform
         self.pre_collate_transform = pre_collate_transform
-        self.test_area = test_area
         self.keep_instance = keep_instance
         self.verbose = verbose
         self.debug = debug
@@ -333,7 +334,6 @@ class NexploreS3DISOriginalFused(Dataset):
     #used for processed_paths
     @property
     def processed_file_names(self):
-        test_area = self.test_area
         return (
             # ["{}_{}.pt".format(s, test_area) for s in ["train", "val", "test", "trainval"]]
             self.raw_areas_paths
@@ -402,15 +402,15 @@ class NexploreS3DISOriginalFused(Dataset):
                 segment_type, segment_idx = segment_name.split("_")
 
                 s3_st = datetime.datetime.utcnow()
-                xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
+                xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = self.read_s3dis_format(
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug, manual_shift=manual_shift
                 )
 
-                # pos_out = np.array(xyz, dtype=np.str)
-                # rgb_out = np.array(rgb, dtype=np.str)
-                # values_out = np.array(semantic_labels, dtype=np.str).reshape((-1, 1))
-                # out = self.concatenate(pos_out, rgb_out, values_out)
-                # self.save_file(os.path.join(self.processed_dir, "train"), f"{area}_debug", out)
+                pos_out = np.array(xyz, dtype=np.str)
+                rgb_out = np.array(rgb, dtype=np.str)
+                values_out = np.array(semantic_labels, dtype=np.str).reshape((-1, 1))
+                out = self.concatenate(pos_out, rgb_out, values_out)
+                self.save_file(os.path.join(self.processed_dir, "train"), f"{area}_debug", out)
                 s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
                 log.info("s3dis train read for %s took %.1f seconds"%(area,s3_tt))
 
@@ -472,7 +472,7 @@ class NexploreS3DISOriginalFused(Dataset):
                 segment_type, segment_idx = segment_name.split("_")
 
                 s3_st = datetime.datetime.utcnow()
-                xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
+                xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = self.read_s3dis_format(
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug,
                     manual_shift=manual_shift
                 )
@@ -533,7 +533,7 @@ class NexploreS3DISOriginalFused(Dataset):
             if os.path.isdir(segment_path):
 
                 s3_st = datetime.datetime.utcnow()
-                xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = read_s3dis_format(
+                xyz, rgb, semantic_labels, instance_labels, room_label, last_shift_vector = self.read_s3dis_format(
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug,
                     manual_shift=manual_shift
                 )
@@ -646,6 +646,131 @@ class NexploreS3DISOriginalFused(Dataset):
         tree = KDTree(np.asarray(data_list.pos), leaf_size=50)
         setattr(data_list, cT.SphereSampling.KDTREE_KEY, tree)
         return [data_list, low_res_data]
+
+    def object_name_to_label(self, object_class):
+        """convert from object name in S3DIS to an int"""
+        log.info(self.object_label_map.keys())
+        for key in self.object_label_map.keys():
+            if object_class.lower() in self.object_label_map[key]:
+                return key
+        # 0 reserved for other
+        return 0
+
+    # TODO segment maybe needed for very large files (100gb+)
+    def read_s3dis_format(self, train_file, room_name, label_out=True, verbose=False, debug=False, manual_shift=None):
+        """extract data from a room folder"""
+        room_type, room_idx = room_name.split("_")
+        room_label = ROOM_TYPES[room_type]
+        raw_path = osp.join(train_file, f"{room_name}.txt")
+        if debug:
+            reader = pd.read_csv(raw_path, delimiter="\n")
+            RECOMMENDED = 10
+            for idx, row in enumerate(reader.values):
+                row = row[0].split(" ")
+                if len(row) != RECOMMENDED:
+                    log.info("1: {} row {}: {}".format(raw_path, idx, row))
+
+                try:
+                    for r in row:
+                        r = float(r)
+                except:
+                    log.info("2: {} row {}: {}".format(raw_path, idx, row))
+
+            return True
+        else:
+            room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
+            xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
+
+            # Shifts to local and quantizes to float32 by default
+            xyz, shift_vector = self.shift_and_quantize(xyz, manual_shift=manual_shift)
+
+            try:
+                rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
+            except ValueError:
+                rgb = np.zeros((room_ver.shape[0], 3), dtype="uint8")
+                log.warning("WARN - corrupted rgb data for file %s" % raw_path)
+            if not label_out:
+                return xyz, rgb
+            n_ver = len(room_ver)
+            del room_ver
+            nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(xyz)
+            semantic_labels = np.zeros((n_ver,), dtype="int64")
+            room_label = np.asarray([room_label])
+            instance_labels = np.zeros((n_ver,), dtype="int64")
+            objects = glob.glob(osp.join(train_file, "annotations/*.txt"))
+            i_object = 1
+            for single_object in objects:
+                object_name = os.path.splitext(os.path.basename(single_object))[0]
+                if object_name == "remainder":  # expand to a list
+                    continue
+                if verbose:
+                    log.debug("adding object " + str(i_object) + " : " + object_name)
+                object_class = object_name.split("_")[0]
+                object_label = self.object_name_to_label(object_class)
+                if object_label == 0:
+                    continue
+                obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
+                obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
+                obj_xyz, _ = self.shift_and_quantize(obj_xyz, manual_shift=shift_vector)
+                _, obj_ind = nn.kneighbors(obj_xyz)
+                semantic_labels[obj_ind] = object_label
+                instance_labels[obj_ind] = i_object
+                i_object = i_object + 1
+
+            return (
+                torch.from_numpy(xyz),
+                torch.from_numpy(rgb),
+                torch.from_numpy(semantic_labels),  # actual label
+                torch.from_numpy(instance_labels),  # index of instance
+                torch.from_numpy(room_label),
+                shift_vector
+            )
+
+    def shift_and_quantize(self, xyz, qtype=np.float32, manual_shift=None):
+        if manual_shift is None:
+            shift_threshold = 100
+            x = xyz[:, 0].min()
+            y = xyz[:, 1].min()
+            z = xyz[:, 2].min()
+
+            shift_x = self.calc_shift(x, shift_threshold)
+            shift_y = self.calc_shift(y, shift_threshold)
+            shift_z = self.calc_shift(z, shift_threshold)
+
+            shift = np.array([shift_x, shift_y, shift_z])
+        else:
+            shift = np.array(manual_shift)
+        scale = 1
+
+        out = np.add(xyz, shift)
+        out = np.multiply(out, scale)
+
+        return out.astype(qtype), shift
+
+    def calc_shift(self, number, threshold):
+        shift = 0
+        if number / threshold > 1:
+            r = int(number % threshold)
+            shift = int(number - r) * -1.00
+        return shift
+
+    def to_ply(self, pos, label, file):
+        assert len(label.shape) == 1
+        assert pos.shape[0] == label.shape[0]
+        pos = np.asarray(pos)
+        colors = OBJECT_COLOR[np.asarray(label)]
+        ply_array = np.ones(
+            pos.shape[0], dtype=[("x", "f4"), ("y", "f4"), ("z", "f4"), ("red", "u1"), ("green", "u1"), ("blue", "u1")]
+        )
+        ply_array["x"] = pos[:, 0]
+        ply_array["y"] = pos[:, 1]
+        ply_array["z"] = pos[:, 2]
+        ply_array["red"] = colors[:, 0]
+        ply_array["green"] = colors[:, 1]
+        ply_array["blue"] = colors[:, 2]
+        el = PlyElement.describe(ply_array, "S3DIS")
+        PlyData([el], byte_order=">").write(file)
+
 
 class NexploreS3DISSphere(NexploreS3DISOriginalFused):
     """ Small variation of S3DISOriginalFused that allows random sampling of spheres
@@ -850,6 +975,8 @@ class NexploreS3DISFusedDataset(BaseDataset):
         for index, label in enumerate(self.dataset_opt.object_labels_map):
             temp_dict[index] = label
         INV_OBJECT_LABEL_MAP = temp_dict
+        self.INV_OBJECT_LABEL_MAP = INV_OBJECT_LABEL_MAP
+        log.info(f"INV_OBJECT_LABEL_MAP: {INV_OBJECT_LABEL_MAP}")
 
         global S3DIS_NUM_CLASSES
         S3DIS_NUM_CLASSES = len(INV_OBJECT_LABEL.keys())

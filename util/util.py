@@ -40,17 +40,19 @@ class Util():
         _data = d[0]
         _low_res = d[1]
 
+        pos_out = np.array(_low_res.pos, dtype=np.str)
+        rgb_out = np.array(_low_res.rgb, dtype=np.str)
+        values_out = np.array(_low_res.y, dtype=np.str).reshape((-1, 1))
+        out = self.concatenate(pos_out, rgb_out, values_out)
+        self.save_file(b_path, f"{f_name}_lowres_debug", out)
+
         pos_out = np.array(_data.pos, dtype=np.str)
         rgb_out = np.array(_data.rgb, dtype=np.str)
         values_out = np.array(_data.y, dtype=np.str).reshape((-1, 1))
         out = self.concatenate(pos_out, rgb_out, values_out)
         self.save_file(b_path, f"{f_name}_highres_debug", out)
 
-        pos_out = np.array(_low_res.pos, dtype=np.str)
-        rgb_out = np.array(_low_res.rgb, dtype=np.str)
-        values_out = np.array(_low_res.y, dtype=np.str).reshape((-1, 1))
-        out = self.concatenate(pos_out, rgb_out, values_out)
-        self.save_file(b_path, f"{f_name}_lowres_debug", out)
+
 
     def test(self):
         global OBJECTS
@@ -58,11 +60,4 @@ class Util():
 
 if __name__ == "__main__":
     util = Util()
-    # util.pt_to_text("D:/SensatUrbanDataset/nexplores3disfused/processed/train/sensat_cambridge_10.pt")
-    for key in OBJECTS.keys():
-        print (f"key: {key}")
-
-    util.test()
-
-    for key in OBJECTS.keys():
-        print (f"key: {key}")
+    util.pt_to_text("E:/SensatUrbanDataset/nexplores3disfused/processed/train/tule_fs_test.pt")
