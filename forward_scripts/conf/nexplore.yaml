@@ -1,7 +1,7 @@
 num_workers: 0
 batch_size: 1
 cuda: 1
-weight_name: "macc" # Used during resume, select with model to load from [miou, macc, acc..., latest]
+weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest]
 enable_cudnn: True
 checkpoint_dir: "C:/Users/mpautzke/Data/models/toronto/Transfer/benchmark-KPConvPaper-20210701_233217"
 model_name: "KPConvPaper"

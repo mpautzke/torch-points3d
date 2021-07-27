@@ -2,6 +2,7 @@ import torch
 import os
 import numpy as np
 from timeit import default_timer as timer
+import laspy
 
 OBJECTS = {
     0: "zero",
@@ -52,6 +53,10 @@ class Util():
         out = self.concatenate(pos_out, rgb_out, values_out)
         self.save_file(b_path, f"{f_name}_highres_debug", out)
 
+    def convert_laz_to_txt(self, path):
+        las = laspy.read(path)
+        print("hi")
+
 
 
     def test(self):
@@ -60,4 +65,5 @@ class Util():
 
 if __name__ == "__main__":
     util = Util()
-    util.pt_to_text("E:/SensatUrbanDataset/nexplores3disfused/processed/train/tule_fs_test.pt")
+    util.pt_to_text("E:/SensatUrbanDataset/nexplores3disfused/processed/train/tule_test.pt")
+    # util.convert_laz_to_txt('C:/Users/mpautzke/Downloads/SEGMENT_3.2_Ave_144_Tule_River_20191202_LAZ_WGS_84_UTM_zone_11N_56_855_052_points.las')
