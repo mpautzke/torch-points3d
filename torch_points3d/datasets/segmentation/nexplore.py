@@ -406,11 +406,11 @@ class NexploreS3DISOriginalFused(Dataset):
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug, manual_shift=manual_shift
                 )
 
-                pos_out = np.array(xyz, dtype=np.str)
-                rgb_out = np.array(rgb, dtype=np.str)
-                values_out = np.array(semantic_labels, dtype=np.str).reshape((-1, 1))
-                out = self.concatenate(pos_out, rgb_out, values_out)
-                self.save_file(os.path.join(self.processed_dir, "train"), f"{area}_debug", out)
+                # pos_out = np.array(xyz, dtype=np.str)
+                # rgb_out = np.array(rgb, dtype=np.str)
+                # values_out = np.array(semantic_labels, dtype=np.str).reshape((-1, 1))
+                # out = self.concatenate(pos_out, rgb_out, values_out)
+                # self.save_file(os.path.join(self.processed_dir, "train"), f"{area}_debug", out)
                 s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
                 log.info("s3dis train read for %s took %.1f seconds"%(area,s3_tt))
 
@@ -658,6 +658,7 @@ class NexploreS3DISOriginalFused(Dataset):
 
     # TODO segment maybe needed for very large files (100gb+)
     def read_s3dis_format(self, train_file, room_name, label_out=True, verbose=False, debug=False, manual_shift=None):
+        k = 1
         """extract data from a room folder"""
         room_type, room_idx = room_name.split("_")
         room_label = ROOM_TYPES[room_type]
@@ -679,28 +680,41 @@ class NexploreS3DISOriginalFused(Dataset):
             return True
         else:
             room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
+            print(f"loading {raw_path}")
             xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
+            total_count = len(xyz)
+            unq_index = np.unique(xyz, axis=0, return_index=True)[1]
+            sorted_unq_index = np.sort(unq_index, axis=0)
+            xyz = np.ascontiguousarray(room_ver[sorted_unq_index, 0:3], dtype="float64")
+            unq_count = len(xyz)
+            print(f"Removed {total_count - unq_count} duplicate points")
 
             # Shifts to local and quantizes to float32 by default
             xyz, shift_vector = self.shift_and_quantize(xyz, manual_shift=manual_shift)
+            shift_unq_index = np.unique(xyz, axis=0, return_index=True)[1]
+            print(f"duplicates after shift: {unq_count - len(shift_unq_index)}")
 
             try:
-                rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
+                rgb = np.ascontiguousarray(room_ver[sorted_unq_index, 3:6], dtype="uint8")
             except ValueError:
-                rgb = np.zeros((room_ver.shape[0], 3), dtype="uint8")
+                rgb = np.zeros((xyz.shape[0], 3), dtype="uint8")
                 log.warning("WARN - corrupted rgb data for file %s" % raw_path)
             if not label_out:
                 return xyz, rgb
-            n_ver = len(room_ver)
+            n_ver = len(xyz)
             del room_ver
-            nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(xyz)
+            del unq_index
+            del sorted_unq_index
+            nn = NearestNeighbors(n_neighbors=k, algorithm="kd_tree").fit(xyz)
             semantic_labels = np.zeros((n_ver,), dtype="int64")
+            # semantic_labels[semantic_labels == 0] = -1
             room_label = np.asarray([room_label])
             instance_labels = np.zeros((n_ver,), dtype="int64")
             objects = glob.glob(osp.join(train_file, "annotations/*.txt"))
             i_object = 1
             for single_object in objects:
                 object_name = os.path.splitext(os.path.basename(single_object))[0]
+                print(f"Annotation: {object_name}")
                 if object_name == "remainder":  # expand to a list
                     continue
                 if verbose:
@@ -711,11 +725,34 @@ class NexploreS3DISOriginalFused(Dataset):
                     continue
                 obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
                 obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
+                obj_unq_index = np.unique(obj_xyz, axis=0, return_index=True)[1]
+                obj_xyz = obj_xyz[obj_unq_index]
                 obj_xyz, _ = self.shift_and_quantize(obj_xyz, manual_shift=shift_vector)
                 _, obj_ind = nn.kneighbors(obj_xyz)
-                semantic_labels[obj_ind] = object_label
-                instance_labels[obj_ind] = i_object
+                n = obj_ind[:, [0]]
+                # all_ind = np.arange(len(obj_xyz))
+                # for i in range(1, k):
+                #     unq, n_unq_index = np.unique(n, return_index=True)
+                #     dup_n_index = np.setdiff1d(all_ind, n_unq_index)
+                #     print(f"duplicate after {i} passes: {len(dup_n_index)}")
+                #     if(len(dup_n_index) <= 0):
+                #         break
+                #     n2 = obj_ind[dup_n_index, [i]]
+                #     n[dup_n_index] = n2.reshape(n[dup_n_index].shape)
+
+                semantic_labels[n] = object_label
+                instance_labels[n] = i_object
                 i_object = i_object + 1
+
+            # classified_xyz = xyz[semantic_labels != -1]
+            # classified_labels = xyz[semantic_labels != -1]
+            # nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree", p=1, radius=0.00000001, leaf_size=50).fit(classified_xyz)
+            # unclassified_xyz = xyz[semantic_labels == -1]
+            # classified_xyz_ind = nn.kneighbors(unclassified_xyz)
+
+
+            # Shifts to local and quantizes to float32 by default
+            # xyz, shift_vector = self.shift_and_quantize(xyz, manual_shift=manual_shift)
 
             return (
                 torch.from_numpy(xyz),
@@ -745,7 +782,7 @@ class NexploreS3DISOriginalFused(Dataset):
         out = np.add(xyz, shift)
         out = np.multiply(out, scale)
 
-        return out.astype(qtype), shift
+        return np.ascontiguousarray(out.astype(qtype)), shift
 
     def calc_shift(self, number, threshold):
         shift = 0

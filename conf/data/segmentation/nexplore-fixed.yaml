@@ -6,7 +6,7 @@ data:
   fold: 3 # Not used for nexplore anymore
   train:
     samples_per_epoch: 50
-    radius: 40 #requires regen
+    radius: 20 #requires regen
     areas: [
 #      "a40",
 #      "a40_fs",
@@ -21,27 +21,29 @@ data:
 #      "orange_oregon",
 #      "peach",
 #      "toronto",
-#      "sensat_birminghan_1",
-#      "sensat_birminghan_2",
-#      "sensat_birminghan_3",
-#      "sensat_birminghan_4",
-#      "sensat_birminghan_5",
-#      "sensat_cambridge_01",
-#      "sensat_cambridge_02",
-#      "sensat_cambridge_03",
-#      "sensat_cambridge_04",
-#      "sensat_cambridge_05",
-#      "sensat_cambridge_06",
-#      "sensat_cambridge_07",
-#      "sensat_cambridge_08",
-#      "sensat_cambridge_09",
-#      "sensat_cambridge_10",
-#      "sensat_cambridge_11"
-       "tule_fs_test"
+      "sensat_birminghan_1",
+      "sensat_birminghan_2",
+      "sensat_birminghan_3",
+      "sensat_birminghan_4",
+      "sensat_birminghan_5",
+      "sensat_cambridge_01",
+      "sensat_cambridge_02",
+      "sensat_cambridge_03",
+      "sensat_cambridge_04",
+      "sensat_cambridge_05",
+      "sensat_cambridge_06",
+      "sensat_cambridge_07",
+      "sensat_cambridge_08",
+      "sensat_cambridge_09",
+      "sensat_cambridge_10",
+      "sensat_cambridge_11"
+#      "tule_fs_test"
+#      "tule_test"
+#      "tule_hp"
     ]
   val:
     samples_per_epoch: 25
-    radius: 40 #requires regen
+    radius: 20 #requires regen
     areas: [
 #      "a40",
 #      "dover_flint",
@@ -55,23 +57,25 @@ data:
 #      "peach",
 #      "tule_fs",
 #      "toronto",
-#      "sensat_birminghan_1",
-#      "sensat_birminghan_2",
-#      "sensat_birminghan_3",
-#      "sensat_birminghan_4",
-#      "sensat_birminghan_5",
-#      "sensat_cambridge_01",
-#      "sensat_cambridge_02",
-#      "sensat_cambridge_03",
-#      "sensat_cambridge_04",
-#      "sensat_cambridge_05",
-#      "sensat_cambridge_06",
-#      "sensat_cambridge_07",
-#      "sensat_cambridge_08",
-#      "sensat_cambridge_09",
-#      "sensat_cambridge_10",
-#      "sensat_cambridge_11"
-       "tule_fs_test"
+      "sensat_birminghan_1",
+      "sensat_birminghan_2",
+      "sensat_birminghan_3",
+      "sensat_birminghan_4",
+      "sensat_birminghan_5",
+      "sensat_cambridge_01",
+      "sensat_cambridge_02",
+      "sensat_cambridge_03",
+      "sensat_cambridge_04",
+      "sensat_cambridge_05",
+      "sensat_cambridge_06",
+      "sensat_cambridge_07",
+      "sensat_cambridge_08",
+      "sensat_cambridge_09",
+      "sensat_cambridge_10",
+      "sensat_cambridge_11"
+#      "tule_fs_test"
+#      "tule_test"
+#      "tule_hp"
     ]
   test:
     samples_per_epoch: 25
