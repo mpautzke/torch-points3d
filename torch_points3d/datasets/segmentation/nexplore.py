@@ -684,8 +684,9 @@ class NexploreS3DISOriginalFused(Dataset):
             xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
             total_count = len(xyz)
             unq_index = np.unique(xyz, axis=0, return_index=True)[1]
-            sorted_unq_index = np.sort(unq_index, axis=0)
-            xyz = np.ascontiguousarray(room_ver[sorted_unq_index, 0:3], dtype="float64")
+            #keeping the same sort order runs much faster through knn
+            unq_index = np.sort(unq_index, axis=0)
+            xyz = np.ascontiguousarray(room_ver[unq_index, 0:3], dtype="float64")
             unq_count = len(xyz)
             print(f"Removed {total_count - unq_count} duplicate points")
 
@@ -695,7 +696,7 @@ class NexploreS3DISOriginalFused(Dataset):
             print(f"duplicates after shift: {unq_count - len(shift_unq_index)}")
 
             try:
-                rgb = np.ascontiguousarray(room_ver[sorted_unq_index, 3:6], dtype="uint8")
+                rgb = np.ascontiguousarray(room_ver[unq_index, 3:6], dtype="uint8")
             except ValueError:
                 rgb = np.zeros((xyz.shape[0], 3), dtype="uint8")
                 log.warning("WARN - corrupted rgb data for file %s" % raw_path)
@@ -704,7 +705,6 @@ class NexploreS3DISOriginalFused(Dataset):
             n_ver = len(xyz)
             del room_ver
             del unq_index
-            del sorted_unq_index
             nn = NearestNeighbors(n_neighbors=k, algorithm="kd_tree").fit(xyz)
             semantic_labels = np.zeros((n_ver,), dtype="int64")
             # semantic_labels[semantic_labels == 0] = -1
@@ -726,6 +726,7 @@ class NexploreS3DISOriginalFused(Dataset):
                 obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
                 obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
                 obj_unq_index = np.unique(obj_xyz, axis=0, return_index=True)[1]
+                obj_unq_index = np.sort(obj_unq_index, axis=0)
                 obj_xyz = obj_xyz[obj_unq_index]
                 obj_xyz, _ = self.shift_and_quantize(obj_xyz, manual_shift=shift_vector)
                 _, obj_ind = nn.kneighbors(obj_xyz)
