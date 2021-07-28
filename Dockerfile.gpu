@@ -12,7 +12,8 @@ ENV TORCH_CUDA_ARCH_LIST=7.0
 
 # Install Debian packages
 RUN apt -y update && apt -y upgrade
-RUN apt -y install wget git python3 build-essential curl
+RUN apt -y install wget git python3 build-essential curl llvm-8
+ENV LLVM_CONFIG=/usr/lib/llvm-8/bin/llvm-config
 
 # Install Miniconda
 ENV CONDA_DIR=/root/miniconda3
