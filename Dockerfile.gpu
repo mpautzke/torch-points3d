@@ -35,8 +35,7 @@ RUN conda install -y -c intel mkl mkl-include && \
     conda clean -a -f -y
 
 # install pip packages
-RUN pip install torch torch-geometric torch-scatter==2.0.8 torch-sparse==0.6.10 torch-cluster==1.5.9 torch-spline-conv==1.2.1 -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
-    pip install torch-points3d && \
+RUN pip install torch torch-geometric torch-scatter==2.0.8 torch-sparse==0.6.10 torch-cluster==1.5.9 torch-spline-conv==1.2.1 torch-points3d h5py gdown -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
     rm -rfv /root/.cache/pip
 
 # copy code
