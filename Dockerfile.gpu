@@ -28,16 +28,14 @@ RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile && \
 
 # install conda packages
 RUN conda install -y -c intel mkl mkl-include && \
-    conda install -y -c pytorch -c conda-forge pytorch torchvision cudatoolkit=11.1 && \
+    conda install -y -c pytorch -c conda-forge pytorch==1.8.0 torchvision cudatoolkit=11.1 && \
     conda install -y -c anaconda openblas-devel && \
     conda install -y -c conda-forge pip && \
     conda install -y scipy && \
     conda clean -a -f -y
 
 # install pip packages
-RUN pip install torch==1.8.1 && \
-    pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
-    pip install torch-geometric && \
+RUN pip install torch torch-geometric torch-scatter==2.0.8 torch-sparse==0.6.10 torch-cluster==1.5.9 torch-spline-conv==1.2.1 -f https://pytorch-geometric.com/whl/torch-1.8.0+cu111.html && \
     pip install torch-points3d && \
     rm -rfv /root/.cache/pip
 
