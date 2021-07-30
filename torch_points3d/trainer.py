@@ -1,4 +1,5 @@
 import os
+import sys
 import copy
 import torch
 import torch.nn as nn
@@ -193,6 +194,8 @@ class Trainer:
         iter_data_time = time.time()
         with Ctq(train_loader) as tq_train_loader:
             for i, data in enumerate(tq_train_loader):
+                for key, item in data:
+                    (f"size of {key}: {sys.getsizeof(data[key])}")
                 t_data = time.time() - iter_data_time
                 iter_start_time = time.time()
                 self._model.set_input(data, self._device)
