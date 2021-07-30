@@ -8,7 +8,7 @@ defaults: # for loading the default config
 
   - visualization: default
   - lr_scheduler: exponential
-  - training: default
+  - training: kpconv
 
   - debugging: default.yaml
   - models: ${defaults.0.task}/${defaults.1.model_type}
@@ -17,7 +17,7 @@ defaults: # for loading the default config
   - hydra/job_logging: custom
   - hydra/output: custom  # add the support for user-defined experiment folder (where to save the experiment files)
 
-job_name: benchmark # prefix name for saving the experiment file.
+job_name: transfer # prefix name for saving the experiment file.
 model_name: KPConvPaper # ??? Name of the specific model to load
 update_lr_scheduler_on: "on_epoch" # ["on_epoch", "on_num_batch", "on_num_sample"]
 selection_stage: ""

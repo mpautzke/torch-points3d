@@ -1,4 +1,5 @@
 import copy
+import sys
 import os
 import os.path as osp
 from itertools import repeat, product
@@ -9,6 +10,7 @@ import time
 import torch
 import random
 import glob
+from torch_geometric.transforms import FixedPoints
 from plyfile import PlyData, PlyElement
 from torch_geometric.data import InMemoryDataset, Data, extract_zip, Dataset
 from torch_geometric.data.dataset import files_exist
@@ -242,24 +244,18 @@ class NexploreS3DISOriginalFused(Dataset):
         keep_instance=False,
         verbose=False,
         debug=False,
-        train_areas=[],
-        val_areas=[],
-        test_areas=[]
+        train_areas={},
+        val_areas={},
+        test_areas={}
     ):
         self.num_classes = S3DIS_NUM_CLASSES
         self.object_label = INV_OBJECT_LABEL
         self.object_label_map = INV_OBJECT_LABEL_MAP
         print(f"num_classes: {self.num_classes}")
-        # assert len(test_areas) > 0
-        assert len(train_areas) > 0
-        if val_areas is None:
-            val_areas = []
         self.lowres_subsampling = lowres_subsampling
-        self.train_areas = list(train_areas)
-        self.val_areas = list(val_areas)
-        if len(self.val_areas) <= 0:
-            self.val_areas = self.train_areas
-        self.test_areas = list(test_areas)
+        self.train_areas = train_areas
+        self.val_areas = val_areas
+        self.test_areas = test_areas
         self.transform = transform
         self.pre_collate_transform = pre_collate_transform
         self.keep_instance = keep_instance
@@ -312,7 +308,10 @@ class NexploreS3DISOriginalFused(Dataset):
 
     @property
     def raw_file_names(self):
-        return self.train_areas + self.test_areas
+        if self.test_areas is None:
+            return list(self.train_areas.keys())
+
+        return list(list(self.train_areas.keys()) | list(self.test_areas.keys()))
 
     @property
     def pre_processed_path(self):
@@ -321,15 +320,19 @@ class NexploreS3DISOriginalFused(Dataset):
 
     @property
     def raw_areas_paths(self):
-        return [os.path.join(self.processed_dir,"train" ,f"{name}.pt") for name in self.train_areas]
+        return [os.path.join(self.processed_dir,"train" ,f"{name}.pt") for name in self.train_areas.keys()]
 
     @property
     def raw_val_areas_paths(self):
-        return [os.path.join(self.processed_dir, "val", f"{name}.pt") for name in self.val_areas]
+        if self.val_areas is None:
+            return []
+        return [os.path.join(self.processed_dir, "val", f"{name}.pt") for name in self.val_areas.keys()]
 
     @property
     def raw_test_areas_paths(self):
-        return [os.path.join(self.processed_dir, "test", f"{name}.pt") for name in self.test_areas]
+        if self.test_areas is None:
+            return []
+        return [os.path.join(self.processed_dir, "test", f"{name}.pt") for name in self.test_areas.keys()]
 
     #used for processed_paths
     @property
@@ -390,10 +393,18 @@ class NexploreS3DISOriginalFused(Dataset):
         train_data_list = []
         manual_shift = None
         dirs = os.listdir(osp.join(self.raw_dir, area))
-        if len(dirs) > 1:
-            dirs.pop() #last segment used for val
+        # dirs.sort(key=lambda x: int(x.split('_')[1]))
+        # if len(dirs) > 1:
+        #     dir = dirs.pop() #last segment used for val
+        #     print(f"reserving {dir} for val")
 
+        selected_segments = self.train_areas[area]
         for segment_name in dirs:
+
+            if selected_segments is not None and segment_name not in selected_segments:
+                log.info(f"skipping {area} {segment_name}")
+                continue
+
             segment_path = osp.join(self.raw_dir, area, segment_name)
 
             log.info(f"Read train data {area}, {segment_name}")
@@ -461,9 +472,17 @@ class NexploreS3DISOriginalFused(Dataset):
         val_data_list = []
         manual_shift = None
         dirs = os.listdir(osp.join(self.raw_dir, area))
-        dirs = dirs[-1:] # last segment used for val
+        # dirs.sort(key=lambda x: int(x.split('_')[1]))
+        # dirs = dirs[-1:] # last segment used for val
+        # print(f"using {dirs} for val")
 
+        selected_segments = self.val_areas[area]
         for segment_name in dirs:
+
+            if selected_segments is not None and segment_name not in selected_segments:
+                print(f"skipping {area} {segment_name}")
+                continue
+
             segment_path = osp.join(self.raw_dir, area, segment_name)
 
             log.info(f"Read val data {area}, {segment_name}")
@@ -526,7 +545,14 @@ class NexploreS3DISOriginalFused(Dataset):
         test_data_list = []
         manual_shift = None
         dirs = os.listdir(osp.join(self.raw_dir, area))
+
+        selected_segments = self.test_areas[area]
         for segment_name in dirs:
+
+            if selected_segments is not None and segment_name not in selected_segments:
+                print(f"skipping {area} {segment_name}")
+                continue
+
             log.info(f"Read test data {area}, {segment_name}")
 
             segment_path = osp.join(self.raw_dir, area, segment_name)
@@ -688,12 +714,12 @@ class NexploreS3DISOriginalFused(Dataset):
             unq_index = np.sort(unq_index, axis=0)
             xyz = np.ascontiguousarray(room_ver[unq_index, 0:3], dtype="float64")
             unq_count = len(xyz)
-            print(f"Removed {total_count - unq_count} duplicate points")
+            print(f"Removed {total_count - unq_count} duplicate points in {raw_path}")
 
             # Shifts to local and quantizes to float32 by default
             xyz, shift_vector = self.shift_and_quantize(xyz, manual_shift=manual_shift)
-            shift_unq_index = np.unique(xyz, axis=0, return_index=True)[1]
-            print(f"duplicates after shift: {unq_count - len(shift_unq_index)}")
+            # shift_unq_index = np.unique(xyz, axis=0, return_index=True)[1]
+            # print(f"duplicates after shift: {unq_count - len(shift_unq_index)}")
 
             try:
                 rgb = np.ascontiguousarray(room_ver[unq_index, 3:6], dtype="uint8")
@@ -714,7 +740,7 @@ class NexploreS3DISOriginalFused(Dataset):
             i_object = 1
             for single_object in objects:
                 object_name = os.path.splitext(os.path.basename(single_object))[0]
-                print(f"Annotation: {object_name}")
+                # print(f"Annotation: {object_name}")
                 if object_name == "remainder":  # expand to a list
                     continue
                 if verbose:
@@ -841,7 +867,7 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
     def __init__(self, root, *args, **kwargs):
         # self._sample_per_epoch = sample_per_epoch
         # self._radius = radius
-
+        self.fixed_points = FixedPoints(50000)
         self.meta = None
         self.spheres = []
         self.sample_data = []
@@ -900,8 +926,8 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
 
         # load next file
         if meta_index != self.file_index:
-            print(f"loading new file for {self._split}")
             self.file_index = meta_index
+            print(f"loading {self.split_areas_paths[self.file_index]} for {self._split}")
             if self._sample_per_epoch > 0:
                 self.sample_data = self._load_sample_data(self.split_areas_paths[self.file_index])
             else:
@@ -909,7 +935,8 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
                 self.spheres = data
 
         if self._sample_per_epoch > 0:
-            return self._get_random()
+            sphere = self.fixed_points(self._get_random())
+            return sphere
         else:
             return self.spheres[idx - self.meta[meta_index]["start"]].clone()
 
@@ -1014,13 +1041,13 @@ class NexploreS3DISFusedDataset(BaseDataset):
             temp_dict[index] = label
         INV_OBJECT_LABEL_MAP = temp_dict
         self.INV_OBJECT_LABEL_MAP = INV_OBJECT_LABEL_MAP
-        log.info(f"INV_OBJECT_LABEL_MAP: {INV_OBJECT_LABEL_MAP}")
+        # log.info(f"INV_OBJECT_LABEL_MAP: {INV_OBJECT_LABEL_MAP}")
 
         global S3DIS_NUM_CLASSES
         S3DIS_NUM_CLASSES = len(INV_OBJECT_LABEL.keys())
-
-        for key in INV_OBJECT_LABEL:
-            log.info(f"key: {key}")
+        val_areas = self.ensure_no_area_overlap(dataset_opt.train.areas, dataset_opt.val.areas)
+        test_areas = self.ensure_no_area_overlap(dataset_opt.train.areas, dataset_opt.test.areas)
+        test_areas = self.ensure_no_area_overlap(dataset_opt.val.areas, test_areas)
 
         self.train_dataset = dataset_cls(
             self._data_path,
@@ -1029,8 +1056,8 @@ class NexploreS3DISFusedDataset(BaseDataset):
             split="train",
             lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train.areas,
-            val_areas=dataset_opt.val.areas,
-            test_areas=dataset_opt.test.areas,
+            val_areas=val_areas,
+            test_areas=test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.train_transform,
         )
@@ -1042,8 +1069,8 @@ class NexploreS3DISFusedDataset(BaseDataset):
             split="val",
             lowres_subsampling=self.dataset_opt.lowres_subsampling,
             train_areas=dataset_opt.train.areas,
-            val_areas=dataset_opt.val.areas,
-            test_areas=dataset_opt.test.areas,
+            val_areas=val_areas,
+            test_areas=test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.val_transform,
         )
@@ -1055,14 +1082,39 @@ class NexploreS3DISFusedDataset(BaseDataset):
         #     split="test",
         #     lowres_subsampling=self.dataset_opt.lowres_subsampling,
         #     train_areas=dataset_opt.train.areas,
-        #     val_areas=dataset_opt.val.areas,
-        #     test_areas=dataset_opt.test.areas,
+        #     val_areas=val_areas,
+        #     test_areas=test_areas,
         #     pre_collate_transform=self.pre_collate_transform,
         #     transform=self.test_transform,
         # )
 
         if dataset_opt.class_weight_method:
             self.add_weights(class_weight_method=dataset_opt.class_weight_method)
+
+    def ensure_no_area_overlap(self, train_dict, other_dict):
+        if other_dict is None:
+            return None
+        for area in train_dict:
+            if (area in train_dict.keys() and train_dict[area] is None) and area in other_dict.keys():
+                print(f"WARNING: train_areas uses all {area}, removing from val areas")
+                del other_dict[area]
+                continue
+
+            if (area in other_dict.keys() and other_dict[area] is None) and area in train_dict.keys():
+                print(f"WARNING: val_areas uses all {area}, but training area selected segments...removing from val area")
+                del other_dict[area]
+                continue
+
+            if area not in other_dict.keys():
+                continue
+
+            intersection = list(set(other_dict[area]) & set(train_dict[area]))
+            print(f"removing segments {intersection} from val {area} as they are found in training")
+            other_dict[area] = [i for i in other_dict[area] if i not in intersection]
+            if len(other_dict[area]) <= 0:
+                del other_dict[area]
+
+        return other_dict
 
     @property
     def test_data(self):

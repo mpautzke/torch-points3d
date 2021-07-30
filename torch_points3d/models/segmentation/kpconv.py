@@ -84,6 +84,9 @@ class KPConvPaper(UnwrappedUnetBasedModel):
         Parameters:
             input: a dictionary that contains the data itself and its metadata information.
         """
+        if hasattr(self.__class__, 'clear') and callable(getattr(self.__class__, 'clear')):
+            self.clear()
+
         data = data.to(device)
         data.x = add_ones(data.pos, data.x, True)
 
@@ -102,6 +105,8 @@ class KPConvPaper(UnwrappedUnetBasedModel):
 
         if self._use_category:
             self.category = data.category
+
+        # del data
 
     def forward(self, *args, **kwargs) -> Any:
         """Run forward pass. This will be called by both functions <optimize_parameters> and <test>."""
@@ -138,6 +143,13 @@ class KPConvPaper(UnwrappedUnetBasedModel):
         self.data_visual = self.input
         self.data_visual.pred = torch.max(self.output, -1)[1]
         return self.output
+
+    def clear(self):
+        if hasattr(self.__class__, 'input'):
+            del self.input
+            del self.labels
+            del self.batch_idx
+        torch.cuda.empty_cache()
 
     def compute_loss(self):
         if self._weight_classes is not None:
