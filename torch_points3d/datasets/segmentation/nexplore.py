@@ -611,7 +611,7 @@ class NexploreS3DISOriginalFused(Dataset):
             this_func = self.process_test
             QUEUE = [x for x in self.test_areas]
 
-        if self.cpus == 0:
+        if self.cpus == 0 or self.cpus is None:
             NPROC = os.cpu_count()
         else:
             NPROC = self.cpus
