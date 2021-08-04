@@ -3,6 +3,7 @@ data:
   class: nexplore.NexploreS3DISFusedDataset
 #  dataroot: C:\Users\mpautzke\Data\points3d
   dataroot: E:\SensatUrbanDataset
+  preprocess_threads: 0 # set to 0 to use as many CPU threads as are available on your system
   train:
     samples_per_epoch: 50
     radius: 20

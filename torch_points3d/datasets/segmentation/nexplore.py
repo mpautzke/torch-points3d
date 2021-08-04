@@ -246,7 +246,8 @@ class NexploreS3DISOriginalFused(Dataset):
         debug=False,
         train_areas={},
         val_areas={},
-        test_areas={}
+        test_areas={},
+        cpus=0
     ):
         self.num_classes = S3DIS_NUM_CLASSES
         self.object_label = INV_OBJECT_LABEL
@@ -264,6 +265,7 @@ class NexploreS3DISOriginalFused(Dataset):
         self._split = split
         self._sample_per_epoch = sample_per_epoch
         self._radius = radius
+        self.cpus = cpus
         # self.areas_paths = []
 
         #init root to call super later
@@ -609,7 +611,10 @@ class NexploreS3DISOriginalFused(Dataset):
             this_func = self.process_test
             QUEUE = [x for x in self.test_areas]
 
-        NPROC = os.cpu_count()
+        if self.cpus == 0:
+            NPROC = os.cpu_count()
+        else:
+            NPROC = self.cpus
 
         THREADS = [None]*NPROC
         NCPU = -1
@@ -1060,6 +1065,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
             test_areas=test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.train_transform,
+            cpus=self.dataset_opt.preprocess_threads
         )
 
         self.val_dataset = dataset_cls(
@@ -1073,6 +1079,7 @@ class NexploreS3DISFusedDataset(BaseDataset):
             test_areas=test_areas,
             pre_collate_transform=self.pre_collate_transform,
             transform=self.val_transform,
+            cpus=self.dataset_opt.preprocess_threads,
         )
 
         # self.test_dataset = dataset_cls(
