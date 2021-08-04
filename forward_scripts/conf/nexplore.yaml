@@ -1,16 +1,17 @@
 num_workers: 0
-batch_size: 1
-cuda: 1
-weight_name: "miou" # Used during resume, select with model to load from [miou, macc, acc..., latest]
-enable_cudnn: True
-checkpoint_dir: "C:/Users/mpautzke/Data/models/toronto/Transfer/benchmark-KPConvPaper-20210701_233217"
+batch_size: 5 # Number of spheres to be passed at one time.  This affects gpu memory usage.  A higher batch size generally means faster inferencing
+cuda: 1 #cuda = 1 use cuda, cuda=0 don't use cuda
+weight_name: "miou" # model weights to select [miou, macc, acc...,mloss, latest]
+enable_cudnn: True #use cudnn or not.  This may be equivalent to cuda.
+checkpoint_dir: "C:/Users/mpautzke/Data/models/sensaturban/transfer-KPConvPaper-20210730_183549" #
 model_name: "KPConvPaper"
 enable_dropout: False
-process_full_resolution: False
+process_full_resolution: False #If true, it will run knn after inference and output the full resolution after knn
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
-input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/a40/segment_3"
-input_filename: "segment_3.txt"
+input_path: "E:/SensatUrbanDataset/nexplores3disfused/raw/sensat_birminghan_val_01/segment_12"
+input_filename: "segment_12.txt"
 confidence_threshold: 0.0 #All confidence scores under this threshold change class to first class (other/unclassified/background)
+prediction_selection_mode: "best" #[first, best, vote] first = first recorded prediction, best = highest confidence prediction, vote = most occurring prediction
 
 # Dataset specific
 defaults:

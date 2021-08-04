@@ -23,7 +23,7 @@ import shutil
 from torch_geometric.nn import knn_interpolate
 from torch_points3d.core.data_transform import SaveOriginalPosId
 from torch_geometric.io import read_txt_array
-from torch_points3d.datasets.segmentation.nexplore import shift_and_quantize, OBJECT_COLOR
+# from torch_points3d.datasets.segmentation.nexplore import shift_and_quantize, OBJECT_COLOR
 
 from torch_points3d.datasets.samplers import BalancedRandomSampler
 import torch_points3d.core.data_transform as cT
@@ -34,22 +34,22 @@ log = logging.getLogger(__name__)
 
 
 
-def to_ply(pos, label, file):
-    assert len(label.shape) == 1
-    assert pos.shape[0] == label.shape[0]
-    pos = np.asarray(pos)
-    colors = OBJECT_COLOR[np.asarray(label)]
-    ply_array = np.ones(
-        pos.shape[0], dtype=[("x", "f4"), ("y", "f4"), ("z", "f4"), ("red", "u1"), ("green", "u1"), ("blue", "u1")]
-    )
-    ply_array["x"] = pos[:, 0]
-    ply_array["y"] = pos[:, 1]
-    ply_array["z"] = pos[:, 2]
-    ply_array["red"] = colors[:, 0]
-    ply_array["green"] = colors[:, 1]
-    ply_array["blue"] = colors[:, 2]
-    el = PlyElement.describe(ply_array, "S3DIS")
-    PlyData([el], byte_order=">").write(file)
+# def to_ply(pos, label, file):
+#     assert len(label.shape) == 1
+#     assert pos.shape[0] == label.shape[0]
+#     pos = np.asarray(pos)
+#     colors = OBJECT_COLOR[np.asarray(label)]
+#     ply_array = np.ones(
+#         pos.shape[0], dtype=[("x", "f4"), ("y", "f4"), ("z", "f4"), ("red", "u1"), ("green", "u1"), ("blue", "u1")]
+#     )
+#     ply_array["x"] = pos[:, 0]
+#     ply_array["y"] = pos[:, 1]
+#     ply_array["z"] = pos[:, 2]
+#     ply_array["red"] = colors[:, 0]
+#     ply_array["green"] = colors[:, 1]
+#     ply_array["blue"] = colors[:, 2]
+#     el = PlyElement.describe(ply_array, "S3DIS")
+#     PlyData([el], byte_order=">").write(file)
 
 ################################### UTILS #######################################
 
@@ -68,83 +68,83 @@ INV_OBJECT_LABEL = {
 
 OBJECT_LABEL = {name: i for i, name in INV_OBJECT_LABEL.items()}
 
-def object_name_to_label(object_class):
-    """convert from object name in S3DIS to an int"""
-    object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
-    return object_label
+# def object_name_to_label(object_class):
+#     """convert from object name in S3DIS to an int"""
+#     object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
+#     return object_label
 
-def read_s3dis_format(train_file, shift_quantize = False, verbose = False, include_labels = True):
-    """extract data from a room folder"""
-    raw_path = osp.join(train_file)
-    room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
-
-    xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
-
-    shift_vector = np.array([0,0,0])
-    if shift_quantize:
-        xyz, shift_vector = shift_and_quantize(xyz)
-
-    # outliers = remove_outliers(xyz)
-
-    try:
-        rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
-    except ValueError:
-        rgb = np.zeros((room_ver.shape[0], 3), dtype="uint8")
-        log.warning("WARN - corrupted rgb data for file %s" % raw_path)
-
-    n_ver = len(room_ver)
-    semantic_labels = np.zeros((n_ver,), dtype="int64")
-    instance_labels = np.zeros((n_ver,), dtype="int64")
-
-    if not include_labels:
-        return torch.from_numpy(xyz), torch.from_numpy(rgb), torch.from_numpy(semantic_labels)
-
-    train_file_dir = osp.split(train_file)[0]
-
-    nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(xyz)
-    objects = glob.glob(osp.join(train_file_dir, "annotations/*.txt"))
-    i_object = 1
-    for single_object in objects:
-        object_name = os.path.splitext(os.path.basename(single_object))[0]
-        if object_name == "remainder":  # expand to a list
-            continue
-        if verbose:
-            log.debug("adding object " + str(i_object) + " : " + object_name)
-        object_class = object_name.split("_")[0]
-        object_label = object_name_to_label(object_class)
-        obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
-        obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
-        obj_xyz, _ = shift_and_quantize(obj_xyz, manual_shift=shift_vector)
-        _, obj_ind = nn.kneighbors(obj_xyz)
-        semantic_labels[obj_ind] = object_label
-        instance_labels[obj_ind] = i_object
-        i_object = i_object + 1
-
-    return (
-        torch.from_numpy(xyz),
-        torch.from_numpy(rgb),
-        torch.from_numpy(semantic_labels),  # actual label
-    )
-
-#TODO Would need to modify original file if we remove outliers as we depend on original index
-def remove_outliers(xyz, x_c = 5, y_c = 5, z_c = 20):
-    # a = np.array(x)
-    x_index = outlier_index(xyz[:,0], x_c)
-    y_index = outlier_index(xyz[:,1], y_c)
-    z_index = outlier_index(xyz[:,2], z_c)
-
-    xy_index = np.union1d(x_index, y_index)
-    xyz_index = np.union1d(xy_index, z_index)
-
-    return xyz_index
-
-def outlier_index(a, outlierConstant):
-    upper_quartile = np.percentile(a, 75)
-    lower_quartile = np.percentile(a, 25)
-    IQR = (upper_quartile - lower_quartile) * outlierConstant
-    quartileSet = (lower_quartile - IQR, upper_quartile + IQR)
-    results = np.where((a <= quartileSet[0]) | (a >= quartileSet[1]))
-    return results
+# def read_s3dis_format(train_file, shift_quantize = False, verbose = False, include_labels = True):
+#     """extract data from a room folder"""
+#     raw_path = osp.join(train_file)
+#     room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
+#
+#     xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
+#
+#     shift_vector = np.array([0,0,0])
+#     if shift_quantize:
+#         xyz, shift_vector = shift_and_quantize(xyz)
+#
+#     # outliers = remove_outliers(xyz)
+#
+#     try:
+#         rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
+#     except ValueError:
+#         rgb = np.zeros((room_ver.shape[0], 3), dtype="uint8")
+#         log.warning("WARN - corrupted rgb data for file %s" % raw_path)
+#
+#     n_ver = len(room_ver)
+#     semantic_labels = np.zeros((n_ver,), dtype="int64")
+#     instance_labels = np.zeros((n_ver,), dtype="int64")
+#
+#     if not include_labels:
+#         return torch.from_numpy(xyz), torch.from_numpy(rgb), torch.from_numpy(semantic_labels)
+#
+#     train_file_dir = osp.split(train_file)[0]
+#
+#     nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(xyz)
+#     objects = glob.glob(osp.join(train_file_dir, "annotations/*.txt"))
+#     i_object = 1
+#     for single_object in objects:
+#         object_name = os.path.splitext(os.path.basename(single_object))[0]
+#         if object_name == "remainder":  # expand to a list
+#             continue
+#         if verbose:
+#             log.debug("adding object " + str(i_object) + " : " + object_name)
+#         object_class = object_name.split("_")[0]
+#         object_label = object_name_to_label(object_class)
+#         obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
+#         obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
+#         obj_xyz, _ = shift_and_quantize(obj_xyz, manual_shift=shift_vector)
+#         _, obj_ind = nn.kneighbors(obj_xyz)
+#         semantic_labels[obj_ind] = object_label
+#         instance_labels[obj_ind] = i_object
+#         i_object = i_object + 1
+#
+#     return (
+#         torch.from_numpy(xyz),
+#         torch.from_numpy(rgb),
+#         torch.from_numpy(semantic_labels),  # actual label
+#     )
+#
+# #TODO Would need to modify original file if we remove outliers as we depend on original index
+# def remove_outliers(xyz, x_c = 5, y_c = 5, z_c = 20):
+#     # a = np.array(x)
+#     x_index = outlier_index(xyz[:,0], x_c)
+#     y_index = outlier_index(xyz[:,1], y_c)
+#     z_index = outlier_index(xyz[:,2], z_c)
+#
+#     xy_index = np.union1d(x_index, y_index)
+#     xyz_index = np.union1d(xy_index, z_index)
+#
+#     return xyz_index
+#
+# def outlier_index(a, outlierConstant):
+#     upper_quartile = np.percentile(a, 75)
+#     lower_quartile = np.percentile(a, 25)
+#     IQR = (upper_quartile - lower_quartile) * outlierConstant
+#     quartileSet = (lower_quartile - IQR, upper_quartile + IQR)
+#     results = np.where((a <= quartileSet[0]) | (a >= quartileSet[1]))
+#     return results
 
 class NexploreS3DISOriginalFused(InMemoryDataset):
     num_classes = S3DIS_NUM_CLASSES
@@ -164,6 +164,9 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
         debug=False,
         include_labels=True
     ):
+        self.num_classes = S3DIS_NUM_CLASSES
+        self.object_label = INV_OBJECT_LABEL
+        self.object_label_map = INV_OBJECT_LABEL_MAP
         self.include_labels = include_labels
         self.fname = fname
         self.path = os.path.join(root, fname)
@@ -179,11 +182,11 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
 
         self._load_data(self.processed_file_names[0])
         self.raw_test_data = self.read_raw_data(include_labels=self.include_labels) #TODO do not hold in mem
-        self.shifted_test_data = self.read_raw_data(shift_quantize=True, include_labels=self.include_labels)
+        self.shifted_test_data = self.read_raw_data(shift_quantize=True, include_labels=self.include_labels, remove_dups=True)
 
-    def read_raw_data(self, shift_quantize=False, include_labels=True):
-        xyz, rgb, semantic_labels = read_s3dis_format(
-            self.path, shift_quantize=shift_quantize, include_labels=include_labels
+    def read_raw_data(self, shift_quantize=False, include_labels=True, remove_dups=False):
+        xyz, rgb, semantic_labels = self.read_s3dis_format(
+            self.path, shift_quantize=shift_quantize, include_labels=include_labels, remove_dups=remove_dups
         )
 
         return Data(pos=xyz.numpy(), y=semantic_labels.numpy(), rgb=rgb.numpy())
@@ -236,8 +239,8 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
 
     def process(self):
         if not os.path.exists(self.processed_file_names[0]):
-            xyz, rgb, semantic_labels = read_s3dis_format(
-                self.path, shift_quantize=True, include_labels=True
+            xyz, rgb, semantic_labels = self.read_s3dis_format(
+                self.path, shift_quantize=True, include_labels=False, remove_dups=True
             )
 
             rgb_norm = rgb.float() / 255.0
@@ -256,6 +259,114 @@ class NexploreS3DISOriginalFused(InMemoryDataset):
 
     def _load_data(self, path):
         self.data, self.slices = torch.load(path)
+
+    def read_s3dis_format(self, train_file, shift_quantize=False, verbose=False, include_labels=True, remove_dups=False):
+        """extract data from a room folder"""
+        raw_path = osp.join(train_file)
+        room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
+
+        xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
+
+        if remove_dups:
+            total_count = len(xyz)
+            unq_index = np.unique(xyz, axis=0, return_index=True)[1]
+            # keeping the same sort order runs much faster through knn
+            unq_index = np.sort(unq_index, axis=0)
+            xyz = np.ascontiguousarray(room_ver[unq_index, 0:3], dtype="float64")
+            unq_count = len(xyz)
+            print(f"Removed {total_count - unq_count} duplicate points in {raw_path}")
+
+        shift_vector = np.array([0, 0, 0])
+        if shift_quantize:
+            xyz, shift_vector = self.shift_and_quantize(xyz)
+
+        # outliers = remove_outliers(xyz)
+
+        try:
+            if remove_dups:
+                rgb = np.ascontiguousarray(room_ver[unq_index, 3:6], dtype="uint8")
+            else:
+                rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
+        except ValueError:
+            rgb = np.zeros((xyz.shape[0], 3), dtype="uint8")
+            log.warning("WARN - corrupted rgb data for file %s" % raw_path)
+
+        n_ver = len(xyz)
+        semantic_labels = np.zeros((n_ver,), dtype="int64")
+        instance_labels = np.zeros((n_ver,), dtype="int64")
+
+        if not include_labels:
+            return torch.from_numpy(xyz), torch.from_numpy(rgb), torch.from_numpy(semantic_labels)
+
+        train_file_dir = osp.split(train_file)[0]
+
+        nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(xyz)
+        objects = glob.glob(osp.join(train_file_dir, "annotations/*.txt"))
+        i_object = 1
+        for single_object in objects:
+            object_name = os.path.splitext(os.path.basename(single_object))[0]
+            if object_name == "remainder":  # expand to a list
+                continue
+            if verbose:
+                log.debug("adding object " + str(i_object) + " : " + object_name)
+            object_class = object_name.split("_")[0]
+            object_label = self.object_name_to_label(object_class)
+            obj_ver = pd.read_csv(single_object, sep=" ", header=None).values
+            obj_xyz = np.ascontiguousarray(obj_ver[:, 0:3], dtype="float64")
+            if remove_dups:
+                obj_unq_index = np.unique(obj_xyz, axis=0, return_index=True)[1]
+                obj_unq_index = np.sort(obj_unq_index, axis=0)
+                obj_xyz = obj_xyz[obj_unq_index]
+            if shift_quantize:
+                obj_xyz, _ = self.shift_and_quantize(obj_xyz, manual_shift=shift_vector)
+            _, obj_ind = nn.kneighbors(obj_xyz)
+            n = obj_ind[:, [0]]
+            semantic_labels[n] = object_label
+            instance_labels[n] = i_object
+            i_object = i_object + 1
+
+        return (
+            torch.from_numpy(xyz),
+            torch.from_numpy(rgb),
+            torch.from_numpy(semantic_labels),  # actual label
+        )
+
+    def object_name_to_label(self, object_class):
+        """convert from object name in S3DIS to an int"""
+        log.info(self.object_label_map.keys())
+        for key in self.object_label_map.keys():
+            if object_class.lower() in self.object_label_map[key]:
+                return key
+        # 0 reserved for other
+        return 0
+
+    def shift_and_quantize(self, xyz, qtype=np.float32, manual_shift=None):
+        if manual_shift is None:
+            shift_threshold = 100
+            x = xyz[:, 0].min()
+            y = xyz[:, 1].min()
+            z = xyz[:, 2].min()
+
+            shift_x = self.calc_shift(x, shift_threshold)
+            shift_y = self.calc_shift(y, shift_threshold)
+            shift_z = self.calc_shift(z, shift_threshold)
+
+            shift = np.array([shift_x, shift_y, shift_z])
+        else:
+            shift = np.array(manual_shift)
+        scale = 1
+
+        out = np.add(xyz, shift)
+        out = np.multiply(out, scale)
+
+        return np.ascontiguousarray(out.astype(qtype)), shift
+
+    def calc_shift(self, number, threshold):
+        shift = 0
+        if number / threshold > 1:
+            r = int(number % threshold)
+            shift = int(number - r) * -1.00
+        return shift
 
 
 class NexploreS3DISSphere(NexploreS3DISOriginalFused):
@@ -315,6 +426,25 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
 
         dataset_cls = NexploreS3DISSphere
 
+        global INV_OBJECT_LABEL
+        temp_dict = {}
+        for index, label in enumerate(self.dataset_opt.object_labels):
+            temp_dict[index] = label
+
+        INV_OBJECT_LABEL = temp_dict
+        self.INV_OBJECT_LABEL = INV_OBJECT_LABEL
+
+        global INV_OBJECT_LABEL_MAP
+        temp_dict = {}
+        for index, label in enumerate(self.dataset_opt.object_labels_map):
+            temp_dict[index] = label
+        INV_OBJECT_LABEL_MAP = temp_dict
+        self.INV_OBJECT_LABEL_MAP = INV_OBJECT_LABEL_MAP
+        # log.info(f"INV_OBJECT_LABEL_MAP: {INV_OBJECT_LABEL_MAP}")
+
+        global S3DIS_NUM_CLASSES
+        S3DIS_NUM_CLASSES = len(INV_OBJECT_LABEL.keys())
+
         self.test_dataset = dataset_cls(
             dataset_opt.dataroot,
             fname=dataset_opt.dataset_name,
@@ -328,6 +458,10 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
 
         if dataset_opt.class_weight_method:
             self.add_weights(class_weight_method=dataset_opt.class_weight_method)
+
+        self.softmax = torch.nn.Softmax(dim=1)
+        self.confidence_threshold = dataset_opt.confidence_threshold
+        self.prediction_selection_mode = PredictionTracker.MODE[dataset_opt.prediction_selection_mode.lower()]
 
     @property
     def test_data(self):
@@ -346,7 +480,8 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
         file : string
             Save location
         """
-        to_ply(pos, label, file)
+        pass
+        # to_ply(pos, label, file)
 
     def get_tracker(self, wandb_log: bool, tensorboard_log: bool):
         """Factory method for the tracker
@@ -361,8 +496,7 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
 
         return S3DISTracker(self, wandb_log=wandb_log, use_tensorboard=tensorboard_log)
 
-    def predict_original_samples(self, batch, conv_type, output, confidence_threshold=0.0):
-        full_res_results = {}
+    def predict_original_samples(self, batch, conv_type, output, results={}):
         num_sample = BaseDataset.get_num_samples(batch, conv_type)
         if conv_type == "DENSE":
             output = output.reshape(num_sample, -1, output.shape[-1])  # [B,N,L]
@@ -373,16 +507,52 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
             # labels = np.zeros((predicted.shape[0]), dtype=np.int64)
             origindid = BaseDataset.get_sample(batch, SaveOriginalPosId.KEY, b, conv_type).cpu().numpy()
 
-            if confidence_threshold > 0.0:
-                softmax = torch.nn.Softmax(dim=1)
-                predicted = softmax(predicted)
-                values, labels = predicted.max(1)
-                labels[values < confidence_threshold] = 0  # threshold
-                labels = labels.cpu().numpy()
-            else:
-                labels = predicted.max(1)[1].cpu().numpy()
+            predicted = self.softmax(predicted)
+            confidence, prediction = predicted.max(1)
+            confidence[confidence < self.confidence_threshold] = 0  # threshold
+            confidence = confidence.cpu().numpy()
+            prediction = prediction.cpu().numpy()
 
-            for index, id in enumerate(origindid):
-                full_res_results[id] = labels[index]
+            for index, oid in enumerate(origindid):
+                pred_tracker = results.get(oid)
+                if pred_tracker is None:
+                    pred_tracker = PredictionTracker(mode=self.prediction_selection_mode)
+                    pred_tracker.add_prediction(prediction[index], confidence[index])
+                    results[oid] = pred_tracker
+                else:
+                    pred_tracker.add_prediction(prediction[index], confidence[index])
 
-        return full_res_results
+        return results
+
+class PredictionTracker:
+    import enum
+
+    MODE = {
+        "first": 0,
+        "best": 1,
+        "vote": 2
+    }
+
+    def __init__(self, mode = MODE["vote"]):
+        self.predictions = []
+        self.confidence = []
+        self.mode = mode
+
+    def add_prediction(self, prediction, confidence):
+        self.predictions.append(prediction)
+        self.confidence.append(confidence)
+
+    def get_prediction(self):
+        np_predictions = np.array(self.predictions)
+        np_confidence = np.array(self.confidence)
+        if self.mode == PredictionTracker.MODE["first"]:
+            return np_predictions[0]
+        if self.mode == PredictionTracker.MODE["best"]:
+            max_index = np.where(np_confidence == np.amax(np_confidence))[0][0]
+            return np_predictions[max_index]
+        if self.mode == PredictionTracker.MODE["vote"]:
+            unq, counts = np.unique(np_predictions, return_counts=True)
+            max_count_index = np.where(counts == np.amax(counts))[0][0]
+            return unq[max_count_index]
+
+

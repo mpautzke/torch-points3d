@@ -1,5 +1,29 @@
 data:
-    samples: -1
-    radius: 20
-    fixed_points: 10000
-    include_labels: False
+    samples: -1 #-1 = grid sampling entire pointcloud.  > 1 will indicate number of spheres to select from pointcloud.
+    radius: 20 #radius for each selection sphere
+    fixed_points: 50000 #number of points in each selected sphere
+    include_labels: False #labels will be included and stats derived from predictions
+    #object_labels is the classifications used for the model.
+    #if object_labels does not exist in the model.pt, fallback to this classification
+    fallback_object_labels: [
+            "other",
+            "road",
+            "car",
+            "vegetation",
+            "building",
+            "water",
+            "ground",
+      #    "rail"
+    ]
+    #object_labels_map is used to map annotations to a classification
+    #if object_labels_map does not exist in the model pt, fallback to this classification
+    fallback_object_labels_map: [
+        [ "other" ],
+        [ "road", "parking", "bridge" ],
+        [ "car" ],
+        [ "vegetation" ],
+        [ "building" ],
+        [ "water" ],
+        [ "ground" ],
+      #    ["rail"]
+    ]

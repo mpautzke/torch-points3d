@@ -935,7 +935,8 @@ class NexploreS3DISSphere(NexploreS3DISOriginalFused):
                 self.spheres = data
 
         if self._sample_per_epoch > 0:
-            sphere = self.fixed_points(self._get_random())
+            # sphere = self.fixed_points(self._get_random())
+            sphere = self._get_random()
             return sphere
         else:
             return self.spheres[idx - self.meta[meta_index]["start"]].clone()
@@ -1109,10 +1110,11 @@ class NexploreS3DISFusedDataset(BaseDataset):
                 continue
 
             intersection = list(set(other_dict[area]) & set(train_dict[area]))
-            print(f"removing segments {intersection} from val {area} as they are found in training")
-            other_dict[area] = [i for i in other_dict[area] if i not in intersection]
-            if len(other_dict[area]) <= 0:
-                del other_dict[area]
+            if len(intersection) > 0:
+                print(f"removing segments {intersection} from val {area} as they are found in training")
+                other_dict[area] = [i for i in other_dict[area] if i not in intersection]
+                if len(other_dict[area]) <= 0:
+                    del other_dict[area]
 
         return other_dict
 

@@ -2,11 +2,11 @@
 training:
     epochs: 550
     num_workers: 0
-    batch_size: 2
+    batch_size: 3
     cuda: 0
     precompute_multi_scale: True # Compute multiscale features on cpu for faster training / inference
     optim:
-        base_lr: 0.004
+        base_lr: 0.0001
         grad_clip: 100
         optimizer:
             class: SGD

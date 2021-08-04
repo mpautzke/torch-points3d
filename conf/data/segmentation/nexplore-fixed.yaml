@@ -1,12 +1,20 @@
 data:
   task: segmentation
   class: nexplore.NexploreS3DISFusedDataset
-#  dataroot: C:\Users\mpautzke\Data\points3d
-  dataroot: E:\SensatUrbanDataset
+  dataroot: C:\Users\mpautzke\Data\points3d
+#  dataroot: E:\SensatUrbanDataset
   train:
-    samples_per_epoch: 50
+    samples_per_epoch: 150
     radius: 20
     areas:
+      tule_fs:
+        - segment_1
+      floral_ave_fs:
+        - segment_1
+      houston_fs:
+        - segment_1
+      handford_1_fs:
+        - segment_1
 #      "a40",
 #      "a40_fs",
 #      "tule_fs",
@@ -20,32 +28,42 @@ data:
 #      "orange_oregon",
 #      "peach",
 #      "toronto",
-      sensat_birminghan_01:
-      sensat_birminghan_02:
-      sensat_birminghan_03:
-      sensat_birminghan_04:
-      sensat_birminghan_05:
-      sensat_cambridge_02:
-      sensat_cambridge_01:
-      sensat_cambridge_03:
-      sensat_cambridge_04:
-      sensat_cambridge_05:
-      sensat_cambridge_06:
-      sensat_cambridge_07:
-      sensat_cambridge_08:
-      sensat_cambridge_09:
-      sensat_cambridge_10:
-      sensat_cambridge_11:
-      sensat_cambridge_12:
+#      sensat_birminghan_01:
+#      sensat_birminghan_02:
+#      sensat_birminghan_03:
+#      sensat_birminghan_04:
+#      sensat_birminghan_05:
+#      sensat_cambridge_02:
+#      sensat_cambridge_01:
+#      sensat_cambridge_03:
+#      sensat_cambridge_04:
+#      sensat_cambridge_05:
+#      sensat_cambridge_06:
+#      sensat_cambridge_07:
+#      sensat_cambridge_08:
+#      sensat_cambridge_09:
+#      sensat_cambridge_10:
+#      sensat_cambridge_11:
+#      sensat_cambridge_12:
 #      "tule_fs_test"
 #      tule_test:
 #      "tule_hp"
 
 
   val:
-    samples_per_epoch: 20
+    samples_per_epoch: 100
     radius: 20
     areas:
+      tule_fs:
+        - segment_2
+      floral_ave_fs:
+        - segment_2
+      houston_fs:
+        - segment_2
+      handford_1_fs:
+        - segment_2
+#      a40_fs:
+#        - segment_3
 #      "a40",
 #      "dover_flint",
 #      "dutch_john",
@@ -74,11 +92,11 @@ data:
 #      "sensat_cambridge_09",
 #      "sensat_cambridge_10",
 #      "sensat_cambridge_11"
-      sensat_birminghan_val_01:
-      sensat_cambridge_val_01:
-      sensat_cambridge_val_02:
+#      sensat_birminghan_val_01:
+#      sensat_cambridge_val_01:
+#      sensat_cambridge_val_02:
 #      "tule_fs_test"
-       tule_test:
+#       tule_test:
 #      "tule_hp"
 
   test:
@@ -96,7 +114,8 @@ data:
     "vegetation",
     "building",
     "water",
-    "ground"
+    "ground",
+#    "rail"
   ]
   object_labels_map: [
     ["other"],
@@ -105,10 +124,11 @@ data:
     ["vegetation"],
     ["building"],
     ["water"],
-    ["ground"]
+    ["ground"],
+#    ["rail"]
   ]
-  first_subsampling: 0.04 # requires regen
-  lowres_subsampling: 0.4 # requires regen
+  first_subsampling: 0.08 # requires regen
+  lowres_subsampling: 0.5 # requires regen
   use_category: False # Not used for nexplore
   pre_collate_transform: # requires regen
       - transform: PointCloudFusion   # One point cloud per area
@@ -118,7 +138,7 @@ data:
             size: ${data.first_subsampling}
   train_transforms:
     - transform: FixedPoints
-      lparams: [30000]
+      lparams: [50000]
     - transform: RandomNoise
       params:
         sigma: 0.001
@@ -152,7 +172,7 @@ data:
         scale: 0.5
   test_transform:
     - transform: FixedPoints
-      lparams: [30000]
+      lparams: [50000]
     - transform: XYZFeature
       params:
         add_x: False

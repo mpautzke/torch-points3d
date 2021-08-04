@@ -65,8 +65,20 @@ class Util():
         # pos_out = np.array(_data.pos, dtype=np.str)
         # rgb_out = np.array(np.array(_data.rgb * 255, dtype=np.int), dtype=np.str)
         # values_out = np.array(_data.y, dtype=np.str).reshape((-1, 1))
-        # out = self.concatenate(pos_out, rgb_out, values_out)
-        # self.save_file(b_path, f"{f_name}_highres_debug", out)
+        # out = concatenate(pos_out, rgb_out, values_out)
+        # save_file(b_path, f"{f_name}_highres_debug", out)
+
+    def pt_to_txt_grid(self, path):
+        b_path, f_name = os.path.split(path)
+        spheres = torch.load(path)
+        size = len(spheres)
+        _data = spheres[random.randint(0, len(spheres))]
+
+        pos_out = np.array(_data.pos, dtype=np.str)
+        rgb_out = np.array(np.array(_data.rgb * 255, dtype=np.int), dtype=np.str)
+        values_out = np.array(_data.y, dtype=np.str).reshape((-1, 1))
+        out = concatenate(pos_out, rgb_out, values_out)
+        save_file(b_path, f"{f_name}_sphere_debug", out)
 
     def convert_laz_to_txt(self, path):
         las = laspy.read(path)
@@ -213,11 +225,12 @@ class SphereTest():
 
 if __name__ == "__main__":
     util = Util()
-    # util.pt_to_text("E:/SensatUrbanDataset/nexplores3disfused/processed/val/sensat_birminghan_val_01.pt")
+    # util.pt_to_text("C:/Users/mpautzke/Data/points3d/nexplores3disfused/processed/train/handford_1_fs.pt")
     # util.convert_laz_to_txt('C:/Users/mpautzke/Downloads/SEGMENT_3.2_Ave_144_Tule_River_20191202_LAZ_WGS_84_UTM_zone_11N_56_855_052_points.las')
     # util.convert_ply_to_txt("C:/Users/mpautzke/Downloads/cambridge_block_7.ply")
-
-    st = SphereTest(path="E:/SensatUrbanDataset/nexplores3disfused/processed/val/sensat_birminghan_val_01.pt", radius=[20], iterations=1, fixed_points=30000)
-    st.output_spheres()
+    util.pt_to_txt_grid("E:/SensatUrbanDataset/nexplores3disfused/raw/sensat_birminghan_val_01/segment_12/processed/segment_12.txt.pt")
+    #
+    # st = SphereTest(path="E:/SensatUrbanDataset/nexplores3disfused/processed/val/sensat_birminghan_val_01.pt", radius=[10, 20, 30, 40, 50], iterations=1, fixed_points=50000)
+    # st.output_spheres()
 
 

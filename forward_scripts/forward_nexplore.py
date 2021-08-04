@@ -9,7 +9,9 @@ from typing import Dict
 import pandas as pd
 import math
 import copy
-from torch_points3d.datasets.segmentation.nexplore import INV_OBJECT_LABEL
+# from torch_points3d.datasets.segmentation.nexplore import INV_OBJECT_LABEL
+
+INV_OBJECT_LABEL = {}
 
 
 DIR = os.path.dirname(os.path.realpath(__file__))
@@ -61,19 +63,22 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True, inc
     for loader in loaders:
         loader.dataset.name
         with Ctq(loader) as tq_test_loader:
-            for data in tq_test_loader:
+            for batch in tq_test_loader:
                 with torch.no_grad():
-                    model.set_input(data, device)
+                    model.set_input(batch, device)
                     model.forward()
-                t_results = dataset.predict_original_samples(data, model.conv_type, model.get_output())
-                for key, value in t_results.items():
-                    results[key] = value
+                results = dataset.predict_original_samples(batch, model.conv_type, model.get_output(), results)
+                # for key, value in t_results.items():
+                #     results[key] = value
+
+    for key, pred_tracker in results.items():
+        results[key] = pred_tracker.get_prediction()
 
     print("Compiling subsampled points...")
     indices = list(results.keys())
 
-    pos = np.array(raw_data.pos[indices], dtype=np.str)
-    rgb = np.array(raw_data.rgb[indices], dtype=np.str)
+    pos = np.array(shifted_raw_data.pos[indices], dtype=np.str)
+    rgb = np.array(shifted_raw_data.rgb[indices], dtype=np.str)
     values = np.array(list(results.values()), dtype=np.str).reshape((-1, 1))
 
     subsampled = concatenate(pos, rgb, values)
@@ -174,6 +179,7 @@ def main(cfg):
     setattr(checkpoint.data_config, "dataset_name", cfg.input_filename)
     setattr(checkpoint.data_config, "include_labels", cfg.data.include_labels)
     setattr(checkpoint.data_config, "confidence_threshold", cfg.confidence_threshold)
+    setattr(checkpoint.data_config, "prediction_selection_mode", cfg.prediction_selection_mode)
 
 
     # Datset specific configs
