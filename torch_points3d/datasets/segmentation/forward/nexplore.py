@@ -53,21 +53,6 @@ log = logging.getLogger(__name__)
 
 ################################### UTILS #######################################
 
-S3DIS_NUM_CLASSES = 8
-
-INV_OBJECT_LABEL = {
-    0: "other",
-    1: "road",
-    2: "car",
-    3: "vegetation",
-    4: "builidng",
-    5: "powerpole",
-    6: "cable",
-    7: "fence"
-}
-
-OBJECT_LABEL = {name: i for i, name in INV_OBJECT_LABEL.items()}
-
 # def object_name_to_label(object_class):
 #     """convert from object name in S3DIS to an int"""
 #     object_label = OBJECT_LABEL.get(object_class.lower(), OBJECT_LABEL["other"])
@@ -146,9 +131,7 @@ OBJECT_LABEL = {name: i for i, name in INV_OBJECT_LABEL.items()}
 #     results = np.where((a <= quartileSet[0]) | (a >= quartileSet[1]))
 #     return results
 
-class NexploreS3DISOriginalFused(InMemoryDataset):
-    num_classes = S3DIS_NUM_CLASSES
-
+class NexploreS3DISOriginalFused(Dataset):
     def __init__(
         self,
         root,
@@ -426,6 +409,11 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
 
         dataset_cls = NexploreS3DISSphere
 
+        if self.dataset_opt.object_labels is None:
+            self.dataset_opt.object_labels = self.dataset_opt.fallback_object_labels
+        if self.dataset_opt.object_labels_map is None:
+            self.dataset_opt.object_labels_map = self.dataset_opt.fallback_object_labels_map
+
         global INV_OBJECT_LABEL
         temp_dict = {}
         for index, label in enumerate(self.dataset_opt.object_labels):
@@ -438,9 +426,9 @@ class NexploreS3DISFusedForwardDataset(BaseDataset):
         temp_dict = {}
         for index, label in enumerate(self.dataset_opt.object_labels_map):
             temp_dict[index] = label
+
         INV_OBJECT_LABEL_MAP = temp_dict
         self.INV_OBJECT_LABEL_MAP = INV_OBJECT_LABEL_MAP
-        # log.info(f"INV_OBJECT_LABEL_MAP: {INV_OBJECT_LABEL_MAP}")
 
         global S3DIS_NUM_CLASSES
         S3DIS_NUM_CLASSES = len(INV_OBJECT_LABEL.keys())

@@ -8,13 +8,9 @@ data:
     radius: 20
     areas:
       tule_fs:
-        - segment_1
       floral_ave_fs:
-        - segment_1
       houston_fs:
-        - segment_1
       handford_1_fs:
-        - segment_1
 #      "a40",
 #      "a40_fs",
 #      "tule_fs",
@@ -28,14 +24,14 @@ data:
 #      "orange_oregon",
 #      "peach",
 #      "toronto",
-#      sensat_birminghan_01:
-#      sensat_birminghan_02:
+      sensat_birminghan_01:
+      sensat_birminghan_02:
 #      sensat_birminghan_03:
 #      sensat_birminghan_04:
 #      sensat_birminghan_05:
-#      sensat_cambridge_02:
-#      sensat_cambridge_01:
-#      sensat_cambridge_03:
+      sensat_cambridge_01:
+      sensat_cambridge_02:
+      sensat_cambridge_03:
 #      sensat_cambridge_04:
 #      sensat_cambridge_05:
 #      sensat_cambridge_06:
