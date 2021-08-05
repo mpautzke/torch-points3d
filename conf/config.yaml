@@ -18,7 +18,7 @@ defaults: # for loading the default config
   - hydra/output: custom  # add the support for user-defined experiment folder (where to save the experiment files)
 
 job_name: transfer # prefix name for saving the experiment file.
-model_name: KPConvPaper_innermost # ??? Name of the specific model to load
+model_name: KPConvPaper # ??? Name of the specific model to load
 update_lr_scheduler_on: "on_epoch" # ["on_epoch", "on_num_batch", "on_num_sample"]
 selection_stage: ""
 pretty_print: False

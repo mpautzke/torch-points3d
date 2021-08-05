@@ -680,7 +680,6 @@ class NexploreS3DISOriginalFused(Dataset):
 
     def object_name_to_label(self, object_class):
         """convert from object name in S3DIS to an int"""
-        log.info(self.object_label_map.keys())
         for key in self.object_label_map.keys():
             if object_class.lower() in self.object_label_map[key]:
                 return key

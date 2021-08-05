@@ -49,7 +49,7 @@ class Util():
     def __init__(self):
         pass
 
-    def pt_to_text(self, path):
+    def pt_to_text(self, path, process_full_res=False):
         b_path, f_name = os.path.split(path)
 
         d = torch.load(path)
@@ -62,11 +62,12 @@ class Util():
         out = concatenate(pos_out, rgb_out, values_out)
         save_file(b_path, f"{f_name}_lowres_debug", out)
 
-        # pos_out = np.array(_data.pos, dtype=np.str)
-        # rgb_out = np.array(np.array(_data.rgb * 255, dtype=np.int), dtype=np.str)
-        # values_out = np.array(_data.y, dtype=np.str).reshape((-1, 1))
-        # out = concatenate(pos_out, rgb_out, values_out)
-        # save_file(b_path, f"{f_name}_highres_debug", out)
+        if process_full_res:
+            pos_out = np.array(_data.pos, dtype=np.str)
+            rgb_out = np.array(np.array(_data.rgb * 255, dtype=np.int), dtype=np.str)
+            values_out = np.array(_data.y, dtype=np.str).reshape((-1, 1))
+            out = concatenate(pos_out, rgb_out, values_out)
+            save_file(b_path, f"{f_name}_highres_debug", out)
 
     def pt_to_txt_grid(self, path):
         b_path, f_name = os.path.split(path)
@@ -122,6 +123,18 @@ class SphereTest():
                 values_out = np.array(sphere_fp.y, dtype=np.str).reshape((-1, 1))
                 out = concatenate(pos_out, rgb_out, values_out)
                 save_file(self._b_path, f"{self._f_name}_sphere_r{self._radius[index]}_fp{self.fixed_points}_{i}", out)
+
+    def test_random(self):
+        choices = []
+        for i in range(0, self._iterations):
+            chosen_label = np.random.choice(self._labels, p=self._label_counts)
+            choices.append(chosen_label)
+
+        choices, counts = np.unique(choices, return_counts=True)
+
+        print(choices)
+        print(counts)
+
 
     def total_size(self, o, handlers={}, verbose=False):
         """ Returns the approximate memory footprint an object and all of its contents.
@@ -225,12 +238,12 @@ class SphereTest():
 
 if __name__ == "__main__":
     util = Util()
-    # util.pt_to_text("C:/Users/mpautzke/Data/points3d/nexplores3disfused/processed/train/handford_1_fs.pt")
+    # util.pt_to_text("C:/Users/mpautzke/Data/points3d/nexplores3disfused/processed/val/a40_fs.pt")
     # util.convert_laz_to_txt('C:/Users/mpautzke/Downloads/SEGMENT_3.2_Ave_144_Tule_River_20191202_LAZ_WGS_84_UTM_zone_11N_56_855_052_points.las')
     # util.convert_ply_to_txt("C:/Users/mpautzke/Downloads/cambridge_block_7.ply")
-    util.pt_to_txt_grid("E:/SensatUrbanDataset/nexplores3disfused/raw/sensat_birminghan_val_01/segment_12/processed/segment_12.txt.pt")
+    # util.pt_to_txt_grid("E:/SensatUrbanDataset/nexplores3disfused/raw/sensat_birminghan_val_01/segment_12/processed/segment_12.txt.pt")
     #
-    # st = SphereTest(path="E:/SensatUrbanDataset/nexplores3disfused/processed/val/sensat_birminghan_val_01.pt", radius=[10, 20, 30, 40, 50], iterations=1, fixed_points=50000)
+    st = SphereTest(path="C:/Users/mpautzke/Data/points3d/nexplores3disfused/processed/train/sensat_cambridge_02.pt", radius=[10,15,20], iterations=100, fixed_points=50000)
     # st.output_spheres()
-
+    st.test_random()
 
