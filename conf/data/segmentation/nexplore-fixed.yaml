@@ -4,37 +4,38 @@ data:
   dataroot: C:\Users\mpautzke\Data\points3d
 #  dataroot: E:\SensatUrbanDataset
   train:
-    samples_per_epoch: 200
-    radius: 40
+    samples_per_epoch: 40
+    radius: 20
     areas:
       tule_fs:
+        - segment_1
       floral_ave_fs:
       houston_fs:
+        - segment_1
       handford_1_fs:
-#      "a40",
-#      "a40_fs",
-#      "tule_fs",
-#      "dover_flint",
-#      "dutch_john",
-#      "handford_2",
-#      "handford_1",
-#      "floral_ave_fs",
-#      "houston",
-#      "orange_ave_connector",
-#      "orange_oregon",
-#      "peach",
+        - segment_1
+#      a40:
+#      a40_fs:
+#      dover_flint:
+#      dutch_john:
+#      handford_2:
+#      handford_1:
+#      houston:
+#      orange_ave_connector:
+#      orange_oregon:
+#      peach:
       toronto:
         - segment_1
         - segment_2
         - segment_3
-      sensat_birminghan_01:
-      sensat_birminghan_02:
-      sensat_birminghan_03:
+#      sensat_birminghan_01:
+#      sensat_birminghan_02:
+#      sensat_birminghan_03:
 #      sensat_birminghan_04:
 #      sensat_birminghan_05:
-      sensat_cambridge_01:
-      sensat_cambridge_02:
-      sensat_cambridge_03:
+#      sensat_cambridge_01:
+#      sensat_cambridge_02:
+#      sensat_cambridge_03:
 #      sensat_cambridge_04:
 #      sensat_cambridge_05:
 #      sensat_cambridge_06:
@@ -50,14 +51,21 @@ data:
 
 
   val:
-    samples_per_epoch: 100
+    samples_per_epoch: 40
     radius: 20
     areas:
-      a40_fs:
-#      "a40",
-#      "dover_flint",
-#      "dutch_john",
-#      "handford_2",
+      houston_fs:
+        - segment_2
+      handford_1_fs:
+        - segment_2
+      tule_fs:
+        - segment_2
+#      a40_fs:
+#      a40:
+#        - segment_3
+#      dover_flint:
+#      dutch_john:
+#      handford_2:
 #      "handford_1",
 #      "floral_ave_fs",
 #      "houston",
@@ -69,8 +77,8 @@ data:
 #      sensat_birminghan_01:
 #      "sensat_birminghan_02",
 #      "sensat_birminghan_03",
-#      "sensat_birminghan_04",
-#      "sensat_birminghan_05",
+#      sensat_birminghan_04:
+#      sensat_birminghan_05:
 #      "sensat_cambridge_01",
 #      "sensat_cambridge_02",
 #      "sensat_cambridge_03",
@@ -83,7 +91,7 @@ data:
 #      "sensat_cambridge_10",
 #      "sensat_cambridge_11"
 #      sensat_birminghan_val_01:
-      sensat_cambridge_val_01:
+#      sensat_cambridge_val_01:
       toronto:
         - segment_4
 #      sensat_cambridge_val_02:
@@ -102,19 +110,23 @@ data:
   object_labels: [
     "other",
     "road",
-#    "car",
-#    "vegetation",
-#    "building",
+    "car",
+    "vegetation",
+    "building",
+    "powerpole",
+    "cable"
 #    "water",
 #    "ground",
 #    "rail"
   ]
   object_labels_map: [
     ["other"],
-    ["road", "parking", "bridge", "footpath"],
-#    ["car"],
-#    ["vegetation"],
-#    ["building"],
+    ["road", "parking"],
+    ["car"],
+    ["vegetation"],
+    ["building"],
+    ["powerpole"],
+    ["cable"]
 #    ["water"],
 #    ["ground", "water"],
 #    ["rail"]
@@ -130,7 +142,7 @@ data:
             size: ${data.first_subsampling}
   train_transforms:
     - transform: FixedPoints
-      lparams: [50000]
+      lparams: [30000]
     - transform: RandomNoise
       params:
         sigma: 0.001
@@ -164,7 +176,7 @@ data:
         scale: 0.5
   test_transform:
     - transform: FixedPoints
-      lparams: [50000]
+      lparams: [30000]
     - transform: XYZFeature
       params:
         add_x: False

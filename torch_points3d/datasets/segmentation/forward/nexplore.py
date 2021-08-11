@@ -1,5 +1,6 @@
 import os
 import os.path as osp
+import laspy
 from itertools import repeat, product
 import numpy as np
 import h5py
@@ -243,36 +244,66 @@ class NexploreS3DISOriginalFused(Dataset):
     def _load_data(self, path):
         self.data, self.slices = torch.load(path)
 
+    def read_laz(self, path, remove_dups=False):
+        las = laspy.read(path)
+        xyz = np.array(np.vstack((las.x, las.y, las.z)).T, dtype=np.float64)
+
+        # check if the file has rgb data
+        if all([x in [x for x in las.point_format.dimension_names] for x in ("red", "green", "blue")]):
+            mode = "rgb"
+        elif all([x in [x for x in las.point_format.dimension_names] for x in ("intensity")]):
+            mode = "intensity"
+        else:
+            raise Exception("Expecting a point cloud with RGB or Intensity data")
+
+        if mode == "rgb":
+            _max = max(np.max(las.red), np.max(las.green), np.max(las.blue))
+            _min = min(np.min(las.red), np.min(las.green), np.min(las.blue))
+            diff = _max - _min
+            rgb = np.array(np.vstack((las.red, las.green, las.blue)).T, dtype=np.float32)
+            rgb -= _min
+            rgb /= diff
+            rgb *= 255
+            rgb = rgb.astype(dtype=np.int32)
+        elif mode=="intensity":
+            # convert greyscale to rgb
+            intensity = las.intensity
+            max = np.max(intensity)
+            intensity = intensity / max
+            intensity = intensity * 255
+            rgb = np.array(np.vstack((intensity, intensity, intensity)).T, dtype=np.int32)
+
+        return xyz, rgb
+
     def read_s3dis_format(self, train_file, shift_quantize=False, verbose=False, include_labels=True, remove_dups=False):
         """extract data from a room folder"""
         raw_path = osp.join(train_file)
-        room_ver = pd.read_csv(raw_path, sep=" ", header=None).values
+        _, ext = os.path.splitext(raw_path)
 
-        xyz = np.ascontiguousarray(room_ver[:, 0:3], dtype="float64")
+        if ext in ['las', 'laz']:
+            xyz, rgb = self.read_laz(raw_path)
+        else:
+            csv = pd.read_csv(raw_path, sep=" ", header=None).values
+            xyz = np.ascontiguousarray(csv[:, 0:3], dtype="float64")
+            try:
+                rgb = np.ascontiguousarray(csv[:, 3:6], dtype="uint8")
+            except ValueError:
+                rgb = np.zeros((xyz.shape[0], 3), dtype="uint8")
+                #log.warning("WARN - corrupted rgb data for file %s" % raw_path)
 
         if remove_dups:
             total_count = len(xyz)
             unq_index = np.unique(xyz, axis=0, return_index=True)[1]
             # keeping the same sort order runs much faster through knn
             unq_index = np.sort(unq_index, axis=0)
-            xyz = np.ascontiguousarray(room_ver[unq_index, 0:3], dtype="float64")
+            xyz = np.ascontiguousarray(csv[unq_index, 0:3], dtype="float64")
             unq_count = len(xyz)
             print(f"Removed {total_count - unq_count} duplicate points in {raw_path}")
+            rgb = rgb[unq_index]
 
         shift_vector = np.array([0, 0, 0])
         if shift_quantize:
             xyz, shift_vector = self.shift_and_quantize(xyz)
-
-        # outliers = remove_outliers(xyz)
-
-        try:
-            if remove_dups:
-                rgb = np.ascontiguousarray(room_ver[unq_index, 3:6], dtype="uint8")
-            else:
-                rgb = np.ascontiguousarray(room_ver[:, 3:6], dtype="uint8")
-        except ValueError:
-            rgb = np.zeros((xyz.shape[0], 3), dtype="uint8")
-            log.warning("WARN - corrupted rgb data for file %s" % raw_path)
 
         n_ver = len(xyz)
         semantic_labels = np.zeros((n_ver,), dtype="int64")

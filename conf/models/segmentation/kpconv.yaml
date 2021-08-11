@@ -2,8 +2,8 @@ models:
   # KPConv: Flexible and Deformable Convolution for Point Clouds (https://arxiv.org/abs/1904.08889)
   # KPConv support format_type="[PARTIAL_DENSE | MESSAGE_PASSING]"
   KPConvPaper:
-    path_pretrained: "C:/Users/mpautzke/Data/models/sensaturban/transfer-KPConvPaper-20210730_183549/KPConvPaper.pt"
-    weight_name: "best_macc"  #['latest', 'best_loss_seg', 'best_acc', 'best_macc', 'best_miou']
+#    path_pretrained: "C:/Users/mpautzke/Data/models/All_classes/transfer-KPConvPaper-20210810_194924/KPConvPaper.pt"
+#    weight_name: "best_loss_seg"  #['latest', 'best_loss_seg', 'best_acc', 'best_macc', 'best_miou']
     class: kpconv.KPConvPaper
     conv_type: "PARTIAL_DENSE"
     define_constants:

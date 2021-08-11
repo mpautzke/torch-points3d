@@ -1,15 +1,15 @@
 num_workers: 0
-batch_size: 3 # Number of spheres to be passed at one time.  This affects gpu memory usage.  A higher batch size generally means faster inferencing
+batch_size: 5 # Number of spheres to be passed at one time.  This affects gpu memory usage.  A higher batch size generally means faster inferencing
 cuda: 1 #cuda = 1 use cuda, cuda=0 don't use cuda
-weight_name: "miou" # model weights to select [miou, macc, acc...,mloss, latest]
+weight_name: "macc" # model weights to select [miou, macc, acc...,mloss, latest]
 enable_cudnn: True #use cudnn or not.  This may be equivalent to cuda.
-checkpoint_dir: "C:/Users/mpautzke/Data/models/sensaturban/transfer/benchmark-KPConvPaper-20210719_083614" #
+checkpoint_dir: "C:/Users/mpautzke/Data/models/Road_Veg/transfer-KPConvPaper-20210810_084759" #
 model_name: "KPConvPaper"
 enable_dropout: False
 process_full_resolution: False #If true, it will run knn after inference and output the full resolution after knn
 output_path: "C:/Users/mpautzke/Data/output" # Where the output goes
-input_path: "E:/SensatUrbanDataset/nexplores3disfused/raw/sensat_birminghan_val_01/segment_12"
-input_filename: "segment_12.txt"
+input_path: "C:/Users/mpautzke/Data/points3d/nexplores3disfused/raw/peach/segment_2"
+input_filename: "segment_2.txt"
 confidence_threshold: 0.0 #All confidence scores under this threshold change class to first class (other/unclassified/background)
 prediction_selection_mode: "vote" #[first, best, vote] first = first recorded prediction, best = highest confidence prediction, vote = most occurring prediction
 

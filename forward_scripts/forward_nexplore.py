@@ -68,20 +68,22 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True, inc
                     model.set_input(batch, device)
                     model.forward()
                 results = dataset.predict_original_samples(batch, model.conv_type, model.get_output(), results)
-                # for key, value in t_results.items():
-                #     results[key] = value
 
     for key, pred_tracker in results.items():
         results[key] = pred_tracker.get_prediction()
 
     print("Compiling subsampled points...")
-    indices = list(results.keys())
+    indices = np.array(list(results.keys()))
+    # indices = np.sort(indices)
 
-    pos = np.array(shifted_raw_data.pos[indices], dtype=np.str)
-    rgb = np.array(shifted_raw_data.rgb[indices], dtype=np.str)
-    values = np.array(list(results.values()), dtype=np.str).reshape((-1, 1))
+    pos = np.array(shifted_raw_data.pos[indices], dtype=float)
+    rgb = np.array(shifted_raw_data.rgb[indices], dtype=int)
+    values = np.array(list(results.values()), dtype=int).reshape((-1, 1))
 
-    subsampled = concatenate(pos, rgb, values)
+    subsampled = np.concatenate([pos, rgb, values], axis=1, dtype=object)
+    del pos
+    del rgb
+    del values
 
     save(output_path,"subsampled", subsampled)
     del subsampled
@@ -94,7 +96,7 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True, inc
     fknn.fit(shifted_raw_data.pos[indices], np.array(list(results.values())))
 
     n = shifted_raw_data.pos.shape[0]
-    batch_size = 65000
+    batch_size = 65000 #batches used due to issue where it incorrectly gets distances for larger searchers
     batches = math.ceil(n / batch_size)
 
     raw_pos = np.array(shifted_raw_data.pos)
@@ -106,9 +108,10 @@ def run(model: BaseModel, dataset, device, output_path, process_full = True, inc
             end = n
 
         out = fknn.predict(raw_pos[start:end])
-        predictions = np.concatenate((predictions, out))
+        predictions = np.concatenate([predictions, out])
 
-    full_res = concatenate(raw_data.pos, raw_data.rgb.astype(dtype=np.str), predictions.reshape((-1, 1)).astype(dtype=np.str))
+    full_res = np.concatenate([raw_data.pos, raw_data.rgb, predictions.reshape((-1, 1))], axis=1, dtype=object)
+    # full_res = concatenate(raw_data.pos, raw_data.rgb.astype(dtype=np.str), predictions.reshape((-1, 1)).astype(dtype=np.str))
 
     save(output_path, "full", full_res)
 
@@ -174,7 +177,7 @@ def main(cfg):
     # setattr(checkpoint.data_config, "class", "forward.nexplore.NexploreS3DISFusedForwardDataset")
     setattr(checkpoint.data_config, "class", train_dataset_cls.FORWARD_CLASS)
     setattr(checkpoint.data_config.test_transform[0], "lparams", [cfg.data.fixed_points])
-    setattr(checkpoint.data_config, "first_subsampling", 0.08)
+    # setattr(checkpoint.data_config, "first_subsampling", 0.08)
     setattr(checkpoint.data_config, "dataroot", cfg.input_path)
     setattr(checkpoint.data_config, "dataset_name", cfg.input_filename)
     setattr(checkpoint.data_config, "include_labels", cfg.data.include_labels)

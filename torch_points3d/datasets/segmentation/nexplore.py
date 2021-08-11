@@ -364,12 +364,6 @@ class NexploreS3DISOriginalFused(Dataset):
             log.info(f"No data found in {self.raw_dir}")
             log.info("WARNING: You need to download data from sharepoint and put it in the data root folder")
 
-    def concatenate(self, pos, rgb, preds):
-        pos_rgb = np.concatenate((pos, rgb), axis=1)
-        pos_rgb_preds = np.concatenate((pos_rgb, preds), axis=1)
-
-        return pos_rgb_preds
-
     def save_file(self, path, filename, results):
 
         output_timer_start = timer()
@@ -419,10 +413,10 @@ class NexploreS3DISOriginalFused(Dataset):
                     segment_path, segment_name, label_out=True, verbose=self.verbose, debug=self.debug, manual_shift=manual_shift
                 )
 
-                # pos_out = np.array(xyz, dtype=np.str)
-                # rgb_out = np.array(rgb, dtype=np.str)
-                # values_out = np.array(semantic_labels, dtype=np.str).reshape((-1, 1))
-                # out = self.concatenate(pos_out, rgb_out, values_out)
+                # pos_out = np.array(xyz, dtype=np.float32)
+                # rgb_out = np.array(rgb, dtype=np.int32)
+                # values_out = np.array(semantic_labels, dtype=np.int32).reshape((-1, 1))
+                # out = np.concatenate([pos_out, rgb_out, values_out], axis=1, dtype=object)
                 # self.save_file(os.path.join(self.processed_dir, "train"), f"{area}_debug", out)
                 s3_tt = (datetime.datetime.utcnow() - s3_st).total_seconds()
                 log.info("s3dis train read for %s took %.1f seconds"%(area,s3_tt))
@@ -1128,20 +1122,38 @@ class NexploreS3DISFusedDataset(BaseDataset):
     def test_data(self):
         return self.test_dataset[0].raw_test_data
 
+    # @staticmethod
+    # # def to_ply(pos, label, file):
+    # #     """ Allows to save s3dis predictions to disk using s3dis color scheme
+    # #
+    # #     Parameters
+    # #     ----------
+    # #     pos : torch.Tensor
+    # #         tensor that contains the positions of the points
+    # #     label : torch.Tensor
+    # #         predicted label
+    # #     file : string
+    # #         Save location
+    # #     """
+    # #     pass
+    # #     # to_ply(pos, label, file)
     @staticmethod
     def to_ply(pos, label, file):
-        """ Allows to save s3dis predictions to disk using s3dis color scheme
-
-        Parameters
-        ----------
-        pos : torch.Tensor
-            tensor that contains the positions of the points
-        label : torch.Tensor
-            predicted label
-        file : string
-            Save location
-        """
-        to_ply(pos, label, file)
+        assert len(label.shape) == 1
+        assert pos.shape[0] == label.shape[0]
+        pos = np.asarray(pos)
+        colors = OBJECT_COLOR[np.asarray(label)]
+        ply_array = np.ones(
+            pos.shape[0], dtype=[("x", "f4"), ("y", "f4"), ("z", "f4"), ("red", "u1"), ("green", "u1"), ("blue", "u1")]
+        )
+        ply_array["x"] = pos[:, 0]
+        ply_array["y"] = pos[:, 1]
+        ply_array["z"] = pos[:, 2]
+        ply_array["red"] = colors[:, 0]
+        ply_array["green"] = colors[:, 1]
+        ply_array["blue"] = colors[:, 2]
+        el = PlyElement.describe(ply_array, "S3DIS")
+        PlyData([el], byte_order=">").write(file)
 
     def get_tracker(self, wandb_log: bool, tensorboard_log: bool):
         """Factory method for the tracker

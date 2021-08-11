@@ -9,6 +9,7 @@ from plyfile import PlyData, PlyElement
 import random
 import torch_points3d.core.data_transform as cT
 from torch_geometric.transforms import FixedPoints
+import glob
 
 
 from sys import getsizeof, stderr
@@ -23,13 +24,6 @@ OBJECTS = {
     0: "zero",
     1: "one"
 }
-
-def concatenate(pos, rgb, preds):
-    pos_rgb = np.concatenate((pos, rgb), axis=1)
-    pos_rgb_preds = np.concatenate((pos_rgb, preds), axis=1)
-
-    return pos_rgb_preds
-
 
 def save_file(path, filename, results):
     output_timer_start = timer()
@@ -49,6 +43,11 @@ class Util():
     def __init__(self):
         pass
 
+    def dir_pt_to_text(self, dir, process_full_res=False):
+        files = glob.glob(os.path.join(dir, "*.pt"))
+        for file in files:
+            self.pt_to_text(file, process_full_res)
+
     def pt_to_text(self, path, process_full_res=False):
         b_path, f_name = os.path.split(path)
 
@@ -56,17 +55,17 @@ class Util():
         _data = d[0]
         _low_res = d[1]
 
-        pos_out = np.array(_low_res.pos, dtype=np.str)
-        rgb_out = np.array(np.array(_low_res.rgb * 255, dtype=np.int), dtype=np.str)
-        values_out = np.array(_low_res.y, dtype=np.str).reshape((-1, 1))
-        out = concatenate(pos_out, rgb_out, values_out)
+        pos_out = np.array(_low_res.pos, dtype=np.float32)
+        rgb_out = np.array(np.array(_low_res.rgb * 255, dtype=np.int32), dtype=np.int32)
+        values_out = np.array(_low_res.y, dtype=np.int32).reshape((-1, 1))
+        out = np.concatenate([pos_out, rgb_out, values_out], axis=1, dtype=object)
         save_file(b_path, f"{f_name}_lowres_debug", out)
 
         if process_full_res:
-            pos_out = np.array(_data.pos, dtype=np.str)
-            rgb_out = np.array(np.array(_data.rgb * 255, dtype=np.int), dtype=np.str)
-            values_out = np.array(_data.y, dtype=np.str).reshape((-1, 1))
-            out = concatenate(pos_out, rgb_out, values_out)
+            pos_out = np.array(_data.pos, dtype=np.float32)
+            rgb_out = np.array(np.array(_data.rgb * 255, dtype=np.int32), dtype=np.int32)
+            values_out = np.array(_data.y, dtype=np.int32).reshape((-1, 1))
+            out = np.concatenate([pos_out, rgb_out, values_out], axis=1, dtype=object)
             save_file(b_path, f"{f_name}_highres_debug", out)
 
     def pt_to_txt_grid(self, path):
@@ -78,12 +77,41 @@ class Util():
         pos_out = np.array(_data.pos, dtype=np.str)
         rgb_out = np.array(np.array(_data.rgb * 255, dtype=np.int), dtype=np.str)
         values_out = np.array(_data.y, dtype=np.str).reshape((-1, 1))
-        out = concatenate(pos_out, rgb_out, values_out)
+        out = np.concatenate([pos_out, rgb_out, values_out], axis=1, dtype=object)
         save_file(b_path, f"{f_name}_sphere_debug", out)
 
     def convert_laz_to_txt(self, path):
+        b_path, f_name = os.path.split(path)
         las = laspy.read(path)
-        print("hi")
+        xyz = np.array(np.vstack((las.x, las.y, las.z)).T, dtype=np.float64)
+
+        # check if it has rgb data
+        if all([x in [x for x in las.point_format.dimension_names] for x in ("red", "green", "blue")]):
+            mode = "rgb"
+        elif all([x in [x for x in las.point_format.dimension_names] for x in ("intensity")]):
+            mode = "intensity"
+
+        if mode == "rgb":
+            _max = max(np.max(las.red), np.max(las.green), np.max(las.blue))
+            _min = min(np.min(las.red), np.min(las.green), np.min(las.blue))
+            diff = _max - _min
+            rgb = np.array(np.vstack((las.red, las.green, las.blue)).T, dtype=np.float32)
+            rgb -= _min
+            rgb /= diff
+            rgb *= 255
+            rgb = rgb.astype(dtype=np.int32)
+        else:
+            # convert greyscale to rgb
+            intensity = las.intensity
+            max = np.max(intensity)
+            intensity = intensity / max
+            intensity = intensity * 255
+            rgb = np.array(np.vstack((intensity, intensity, intensity)).T, dtype=np.int32)
+
+        pt = np.concatenate([xyz, rgb], axis=1, dtype=object)
+        save_file(b_path, f"{f_name}_las_debug", pt)
+
+        return xyz, rgb
 
     def convert_ply_to_txt(self, path):
         plydata = PlyData.read(path)
@@ -111,17 +139,17 @@ class SphereTest():
             spheres = self._get_random()
             for index, sphere in enumerate(spheres):
 
-                pos_out = np.array(sphere.pos, dtype=np.str)
-                rgb_out = np.array(np.array(sphere.rgb * 255, dtype=np.int), dtype=np.str)
-                values_out = np.array(sphere.y, dtype=np.str).reshape((-1, 1))
-                out = concatenate(pos_out, rgb_out, values_out)
+                pos_out = np.array(sphere.pos, dtype=np.float32)
+                rgb_out = np.array(np.array(sphere.rgb * 255, dtype=np.int32), dtype=np.int32)
+                values_out = np.array(sphere.y, dtype=np.int32).reshape((-1, 1))
+                out = np.concatenate([pos_out, rgb_out, values_out], axis=1, dtype=object)
                 save_file(self._b_path, f"{self._f_name}_sphere_r{self._radius[index]}_{i}", out)
 
                 sphere_fp = self.fp(sphere)
-                pos_out = np.array(sphere_fp.pos, dtype=np.str)
-                rgb_out = np.array(np.array(sphere_fp.rgb * 255, dtype=np.int), dtype=np.str)
-                values_out = np.array(sphere_fp.y, dtype=np.str).reshape((-1, 1))
-                out = concatenate(pos_out, rgb_out, values_out)
+                pos_out = np.array(sphere_fp.pos, dtype=np.float32)
+                rgb_out = np.array(np.array(sphere_fp.rgb * 255, dtype=np.int32), dtype=np.int32)
+                values_out = np.array(sphere_fp.y, dtype=np.int32).reshape((-1, 1))
+                out = np.concatenate([pos_out, rgb_out, values_out], axis=1, dtype=object)
                 save_file(self._b_path, f"{self._f_name}_sphere_r{self._radius[index]}_fp{self.fixed_points}_{i}", out)
 
     def test_random(self):
@@ -238,12 +266,14 @@ class SphereTest():
 
 if __name__ == "__main__":
     util = Util()
-    # util.pt_to_text("C:/Users/mpautzke/Data/points3d/nexplores3disfused/processed/val/a40_fs.pt")
+    util.convert_laz_to_txt("C:/Users/mpautzke/Data/las/tule.las")
+    # util.pt_to_text("C:/Users/mpautzke/Data/points3d/nexplores3disfused/processed/train/toronto.pt", process_full_res=True)
+    # util.dir_pt_to_text("C:/Users/mpautzke/Data/points3d/nexplores3disfused/processed/train/", process_full_res=False)
     # util.convert_laz_to_txt('C:/Users/mpautzke/Downloads/SEGMENT_3.2_Ave_144_Tule_River_20191202_LAZ_WGS_84_UTM_zone_11N_56_855_052_points.las')
     # util.convert_ply_to_txt("C:/Users/mpautzke/Downloads/cambridge_block_7.ply")
     # util.pt_to_txt_grid("E:/SensatUrbanDataset/nexplores3disfused/raw/sensat_birminghan_val_01/segment_12/processed/segment_12.txt.pt")
     #
-    st = SphereTest(path="C:/Users/mpautzke/Data/points3d/nexplores3disfused/processed/train/sensat_cambridge_02.pt", radius=[10,15,20], iterations=100, fixed_points=50000)
+    # st = SphereTest(path="C:/Users/mpautzke/Data/points3d/nexplores3disfused/processed/train/toronto.pt", radius=[20], iterations=1, fixed_points=50000)
     # st.output_spheres()
-    st.test_random()
+    # st.test_random()
 
